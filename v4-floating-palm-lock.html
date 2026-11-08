@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Floating Chorded Keyboard</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #DDDDDD;
+            overflow: hidden;
+            font-family: sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* 1️⃣ LOCKED TEXT EDITOR */
+        #editor {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            padding: 120px 20px 20px 120px;
+            font-size: 24px;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow-y: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Custom Blinking Caret */
+        #caret {
+            display: inline-block;
+            width: 2px;
+            height: 26px;
+            background-color: #2196F3;
+            vertical-align: text-bottom;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        #kbCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* Floating Buttons */
+        .btn {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            user-select: none;
+            -webkit-user-select: none;
+            z-index: 20;
+            transition: left 0.08s ease-out, top 0.08s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="editor"><span id="textContent"></span><span id="caret"></span></div>
+
+    <canvas id="kbCanvas"></canvas>
+
+    <div class="btn" id="btnSpace">␣</div>
+    <div class="btn" id="btnBackspace">⌫</div>
+
+<script>
+    // 🎛️ CUSTOMIZABLE VARIABLES
+    const innerRadius = 60;
+    const mainRadius = 73;
+    const textRadius = mainRadius + 13; 
+    const outerRadius = textRadius + 13; 
+    
+    const labelFontSize = 27;
+    const gapAngle = 18;
+    const numItems = 6;
+    const angleStep = 360 / numItems;
+    const sweepAngle = angleStep - gapAngle;
+
+    // 🌟 STATE
+    let textValue = "";
+    let activeTouchId = null;
+    let firstFiredZone = null;
+    let activeCharIndex = null;
+    let fingerPos = null;
+    let ghosts = [];
+    let cursorSparks = [];
+    
+    let kbdCenter = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+    const canvas = document.getElementById('kbCanvas');
+    const ctx = canvas.getContext('2d');
+    const textContent = document.getElementById('textContent');
+    const caret = document.getElementById('caret');
+    const btnSpace = document.getElementById('btnSpace');
+    const btnBackspace = document.getElementById('btnBackspace');
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        updateKeyboardCenter();
+    }
+    window.addEventListener('resize', resize);
+
+    // 📍 CARET TRACKING & FLOATING BUTTON LOGIC
+    function updateKeyboardCenter() {
+        const rect = caret.getBoundingClientRect();
+        kbdCenter = { x: rect.left, y: rect.top + (rect.height / 2) };
+
+        const offset = 100;
+        const btnRadius = 25;
+
+        btnSpace.style.left = (kbdCenter.x - offset - btnRadius) + 'px';
+        btnSpace.style.top = (kbdCenter.y - offset - btnRadius) + 'px';
+        
+        btnBackspace.style.left = (kbdCenter.x + offset - btnRadius) + 'px';
+        btnBackspace.style.top = (kbdCenter.y - offset - btnRadius) + 'px';
+    }
+
+    resize();
+
+    // 🎹 COMBO MAP
+    function generateComboMap() {
+        const map = new Map();
+        let charCode = 97; 
+        const extras = [" ", ".", "?", "!"];
+        let extraIdx = 0;
+
+        for (let i = 1; i <= 6; i++) {
+            for (let j = 1; j <= 6; j++) {
+                if (i !== j) {
+                    if (charCode <= 122) { 
+                        map.set(`${i}-${j}`, String.fromCharCode(charCode));
+                        charCode++;
+                    } else if (extraIdx < extras.length) {
+                        map.set(`${i}-${j}`, extras[extraIdx]);
+                        extraIdx++;
+                    }
+                }
+            }
+        }
+        return map;
+    }
+    const comboMap = generateComboMap();
+
+    // 🔄 ROTATED ZONE MAPPING: Index 4 (old #5) is now #1, going clockwise
+    function getZoneForIndex(index) { 
+        return ((index + 2) % 6) + 1; 
+    }
+    
+    // ✍️ LOCKED SINGLE-CHARACTER INPUT/DELETE
+    function commitText(char) {
+        textValue += char;
+        textContent.textContent = textValue;
+        updateKeyboardCenter();
+    }
+
+    function deleteChar() {
+        if (textValue.length > 0) {
+            textValue = textValue.slice(0, -1);
+            textContent.textContent = textValue;
+            updateKeyboardCenter();
+        }
+    }
+
+    // 🔍 CHECK IF A POINT IS INSIDE A KEY ZONE
+    function getHitZoneIndex(x, y) {
+        const dx = x - kbdCenter.x;
+        const dy = y - kbdCenter.y;
+        const distToCenter = Math.sqrt(dx * dx + dy * dy);
+
+        if (distToCenter < mainRadius || distToCenter > outerRadius) return null;
+
+        let angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angleDeg < 0) angleDeg += 360;
+
+        let shiftedAngle = angleDeg + 90;
+        if (shiftedAngle < 0) shiftedAngle += 360;
+        if (shiftedAngle >= 360) shiftedAngle -= 360;
+
+        const closestIndex = Math.round(shiftedAngle / angleStep) % numItems;
+        const centerAngleForIndex = closestIndex * angleStep;
+
+        let diff = Math.abs(shiftedAngle - centerAngleForIndex);
+        if (diff > 180) diff = 360 - diff;
+
+        return (diff <= sweepAngle / 2) ? closestIndex : null;
+    }
+
+    // 👆 MULTI-TOUCH & PALM-REJECTION HANDLER
+    function handleTouch(e) {
+        let activeTouch = null;
+
+        if (activeTouchId !== null) {
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].identifier === activeTouchId) {
+                    activeTouch = e.touches[i];
+                    break;
+                }
+            }
+            if (!activeTouch) {
+                activeTouchId = null;
+                activeCharIndex = null;
+                fingerPos = null;
+            }
+        }
+
+        if (activeTouchId === null) {
+            for (let i = 0; i < e.touches.length; i++) {
+                const t = e.touches[i];
+                const hitZone = getHitZoneIndex(t.clientX, t.clientY);
+                if (hitZone !== null) {
+                    activeTouchId = t.identifier;
+                    activeTouch = t;
+                    break;
+                }
+            }
+        }
+
+        if (!activeTouch) return;
+
+        fingerPos = { x: activeTouch.clientX, y: activeTouch.clientY };
+
+        const dx = fingerPos.x - kbdCenter.x;
+        const dy = fingerPos.y - kbdCenter.y;
+        const distToCenter = Math.sqrt(dx * dx + dy * dy);
+
+        // --- 1️⃣ UPPER BOUND CANCEL LOGIC ---
+        if (distToCenter > outerRadius) {
+            activeCharIndex = null;
+        }
+        // --- 2️⃣ AIMING BAND LOGIC ---
+        else if (distToCenter > innerRadius) {
+            if (distToCenter >= mainRadius) {
+                activeCharIndex = getHitZoneIndex(fingerPos.x, fingerPos.y);
+            }
+        }
+        // --- 3️⃣ FIRING LOGIC ---
+        else {
+            if (activeCharIndex !== null) {
+                const firedZone = getZoneForIndex(activeCharIndex);
+                const isCancelBtn = (firstFiredZone !== null && firedZone === firstFiredZone);
+                
+                const mappedChar = (firstFiredZone !== null && !isCancelBtn) 
+                    ? comboMap.get(`${firstFiredZone}-${firedZone}`) 
+                    : null;
+
+                const isValidAction = isCancelBtn || firstFiredZone === null || mappedChar;
+
+                if (isValidAction) {
+                    const ghostText = isCancelBtn ? "🔙" : firedZone.toString();
+                    const angleRad = ((activeCharIndex * angleStep) - 90) * Math.PI / 180;
+                    
+                    const now = Date.now();
+                    ghosts.push({
+                        text: ghostText,
+                        x: kbdCenter.x + Math.cos(angleRad) * textRadius,
+                        y: kbdCenter.y + Math.sin(angleRad) * textRadius,
+                        isCancelBtn: isCancelBtn,
+                        startTime: now
+                    });
+
+                    cursorSparks.push({
+                        x: fingerPos.x,
+                        y: fingerPos.y,
+                        isCancelBtn: isCancelBtn,
+                        startTime: now
+                    });
+
+                    if (firstFiredZone === null) {
+                        firstFiredZone = firedZone;
+                    } else {
+                        if (isCancelBtn) {
+                            firstFiredZone = null;
+                        } else {
+                            commitText(mappedChar);
+                            firstFiredZone = null;
+                        }
+                    }
+                }
+                activeCharIndex = null;
+            }
+        }
+    }
+
+    document.addEventListener('touchstart', (e) => {
+        if (e.target.classList.contains('btn')) return;
+        e.preventDefault();
+        handleTouch(e);
+    }, {passive: false});
+
+    document.addEventListener('touchmove', (e) => {
+        if (e.target.classList.contains('btn')) return;
+        e.preventDefault(); 
+        handleTouch(e);
+    }, {passive: false});
+
+    document.addEventListener('touchend', (e) => {
+        if (e.target.classList.contains('btn')) return;
+        e.preventDefault();
+        handleTouch(e);
+    }, {passive: false});
+
+    document.addEventListener('touchcancel', (e) => {
+        handleTouch(e);
+    }, {passive: false});
+
+    btnSpace.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        commitText(" ");
+    }, {passive: false});
+    
+    btnBackspace.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        deleteChar();
+    }, {passive: false});
+
+    // 🎨 RENDER LOOP
+    function drawArc(x, y, r, startAngleDeg, sweepAngleDeg, color, lineWidth, fill = false) {
+        ctx.beginPath();
+        const startRad = startAngleDeg * Math.PI / 180;
+        const endRad = (startAngleDeg + sweepAngleDeg) * Math.PI / 180;
+        ctx.arc(x, y, r, startRad, endRad);
+        
+        if (fill) {
+            ctx.fillStyle = color;
+            ctx.fill();
+        } else {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const cx = kbdCenter.x;
+        const cy = kbdCenter.y;
+        const now = Date.now();
+
+        // 1️⃣ HIGHLIGHT ZONES
+        for (let i = 0; i < numItems; i++) {
+            const zone = getZoneForIndex(i);
+            const isAnchor = (zone === firstFiredZone);
+            
+            if (isAnchor) {
+                const startAngleDeg = (i * angleStep) - 90 - (sweepAngle / 2);
+                const startRad = startAngleDeg * Math.PI / 180;
+                const endRad = (startAngleDeg + sweepAngle) * Math.PI / 180;
+
+                ctx.beginPath();
+                ctx.arc(cx, cy, outerRadius, startRad, endRad, false);
+                ctx.arc(cx, cy, mainRadius, endRad, startRad, true); 
+                ctx.closePath();
+                ctx.fillStyle = '#4CAF50';
+                ctx.fill();
+            }
+        }
+
+        // 2️⃣ COMPLETE INNER CIRCLE
+        ctx.beginPath();
+        ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = '#2196F3';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        // 3️⃣ DRAW "KEY" BORDERS
+        const borderColor = 'rgba(128, 128, 128, 0.6)';
+        for (let i = 0; i < numItems; i++) {
+            const startAngleDeg = (i * angleStep) - 90 - (sweepAngle / 2);
+            const startRad = startAngleDeg * Math.PI / 180;
+            const endRad = (startAngleDeg + sweepAngle) * Math.PI / 180;
+
+            drawArc(cx, cy, mainRadius, startAngleDeg, sweepAngle, borderColor, 3);
+            drawArc(cx, cy, outerRadius, startAngleDeg, sweepAngle, borderColor, 3);
+
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(startRad) * mainRadius, cy + Math.sin(startRad) * mainRadius);
+            ctx.lineTo(cx + Math.cos(startRad) * outerRadius, cy + Math.sin(startRad) * outerRadius);
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(endRad) * mainRadius, cy + Math.sin(endRad) * mainRadius);
+            ctx.lineTo(cx + Math.cos(endRad) * outerRadius, cy + Math.sin(endRad) * outerRadius);
+            ctx.stroke();
+        }
+
+        // 4️⃣ DRAW STATIC LABELS
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `bold ${labelFontSize}px sans-serif`;
+
+        for (let i = 0; i < numItems; i++) {
+            const zone = getZoneForIndex(i);
+            const angleRad = ((i * angleStep) - 90) * Math.PI / 180;
+            const textX = cx + Math.cos(angleRad) * textRadius;
+            const textY = cy + Math.sin(angleRad) * textRadius;
+            
+            ctx.fillStyle = (zone === firstFiredZone) ? 'white' : 'black';
+            ctx.fillText(zone.toString(), textX, textY);
+        }
+
+        // 5️⃣ FIRED STATE TEXT GHOSTS
+        ghosts = ghosts.filter(ghost => {
+            const age = now - ghost.startTime;
+            if (age > 300) return false; 
+            
+            const alpha = 1 - (age / 300);
+            ctx.fillStyle = ghost.isCancelBtn ? `rgba(255, 152, 0, ${alpha})` : `rgba(76, 175, 80, ${alpha})`;
+            ctx.fillText(ghost.text, ghost.x, ghost.y);
+            return true;
+        });
+
+        // 6️⃣ FIRED CURSOR SPARKS
+        cursorSparks = cursorSparks.filter(spark => {
+            const age = now - spark.startTime;
+            if (age > 300) return false;
+
+            const p = age / 300;
+            const currentRadius = 24 + (60 - 24) * p;
+            const alpha = 1 - p;
+            
+            const r = spark.isCancelBtn ? 255 : 76;
+            const g = spark.isCancelBtn ? 152 : 175;
+            const b = spark.isCancelBtn ? 0 : 80;
+
+            ctx.beginPath();
+            ctx.arc(spark.x, spark.y, currentRadius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.4})`;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(spark.x, spark.y, currentRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            ctx.lineWidth = 6;
+            ctx.stroke();
+
+            return true;
+        });
+
+        // 7️⃣ FINGER TRACKING CURSOR
+        if (fingerPos) {
+            ctx.beginPath();
+            ctx.arc(fingerPos.x, fingerPos.y, 24, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(33, 150, 243, 0.3)';
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.arc(fingerPos.x, fingerPos.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(fingerPos.x, fingerPos.y, 24, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(33, 150, 243, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        requestAnimationFrame(draw);
+    }
+
+    requestAnimationFrame(draw);
+</script>
+</body>
+</html>
