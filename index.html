@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Khủng Long Keyboard Lab 🦖</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100%; height: 100%;
+            background-color: #E5E7EB;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        /* 🎛️ TOP SWITCHER BAR */
+        .ui-panel {
+            position: absolute;
+            top: 10px; left: 10px; right: 10px;
+            z-index: 50;
+            pointer-events: auto;
+        }
+        .top-bar {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            padding: 8px 10px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .version-pills {
+            display: flex; gap: 6px;
+            overflow-x: auto; flex: 1;
+            scrollbar-width: none;
+        }
+        .version-pills::-webkit-scrollbar { display: none; }
+        .pill {
+            border: 1px solid #D1D5DB;
+            background: #F9FAFB; color: #374151;
+            padding: 6px 12px; border-radius: 999px;
+            font-size: 13px; font-weight: 700;
+            white-space: nowrap; cursor: pointer;
+        }
+        .pill.active {
+            background: #2196F3; color: white; border-color: #2196F3;
+        }
+        .action-btn {
+            border: none; background: #F3F4F6; color: #111827;
+            padding: 6px 10px; border-radius: 10px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .action-btn.active { background: #111827; color: white; }
+
+        #notesDrawer {
+            margin-top: 8px;
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 14px; padding: 14px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            font-size: 13px; line-height: 1.45; color: #374151;
+            display: none;
+        }
+        #notesDrawer.open { display: block; }
+        #notesDrawer h3 { font-size: 15px; color: #111827; margin-bottom: 4px; }
+
+        /* 📝 LOCKED TEXT EDITOR */
+        #editor {
+            position: absolute;
+            top: 64px; left: 10px; right: 10px; bottom: 10px;
+            background: white; border-radius: 16px;
+            padding: 120px 24px 24px 120px;
+            font-size: 22px; line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow-y: hidden;
+            white-space: pre-wrap; word-wrap: break-word;
+            pointer-events: none; z-index: 1;
+        }
+        #caret {
+            display: inline-block; width: 2.5px; height: 24px;
+            background-color: #2196F3; vertical-align: text-bottom;
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        #kbCanvas {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+        }
+
+        .btn {
+            position: absolute; width: 48px; height: 48px;
+            background: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: bold;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            pointer-events: auto; z-index: 20;
+            transition: left 0.08s ease-out, top 0.08s ease-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-panel">
+        <div class="top-bar">
+            <div class="version-pills" id="pillContainer"></div>
+            <button class="action-btn" id="btnToggleNotes">💡 Info</button>
+            <button class="action-btn" id="btnClear">🗑️</button>
+        </div>
+        <div id="notesDrawer"></div>
+    </div>
+
+    <div id="editor"><span id="textContent"></span><span id="caret"></span></div>
+    <canvas id="kbCanvas"></canvas>
+
+    <div class="btn" id="btnSpace">␣</div>
+    <div class="btn" id="btnBackspace">⌫</div>
+
+<script>
+    // 📚 VERSION ARCHIVE (Growing with each batch!)
+    const VERSIONS = [
+        {
+            id: "v0.1",
+            label: "v0.1 • Dec 24",
+            title: "v0.1 (Dec 24) — 3×3 Nested Square Grid",
+            notes: "Start drag inside the center square ('Home Base'). Drag into any of the 8 surrounding squares to spawn 8 orange sub-squares around it. Enter a sub-square to fire!",
+            engine: "grid_v1"
+        },
+        {
+            id: "v0.2",
+            label: "v0.2 • Dec 25",
+            title: "v0.2 (Dec 25) — Circle + 8 Perimeter Dots",
+            notes: "Enter the center circle to turn it Blue (Ready). Drag onto any of the 8 perimeter dots to open a 4-key directional cross (Up, Right, Down, Left), then drag past threshold to type.",
+            engine: "dots_v2"
+        },
+        {
+            id: "v0.3",
+            label: "v0.3 • Dec 26",
+            title: "v0.3 (Dec 26) — Push Triggers (Bars & Dots)",
+            notes: "Alternating Bars (E/S/W/N) and Dots (diagonals) sit inside the outer wall. Push a trigger outward to the wall to pop open 4 rotated local letters (Out, CW, In, CCW).",
+            engine: "push_v3"
+        },
+        {
+            id: "latest",
+            label: "Latest • 6-Zone",
+            title: "Latest — Floating 6-Zone Rotated Chorded Keyboard",
+            notes: "6 separated keys (#1 at 8 o'clock), floating on the text cursor with palm rejection and cursor ripple sparks.",
+            engine: "chord6_latest"
+        }
+    ];
+
+    // 🗺️ CHARACTER MAPS FOR BATCH 1
+    const CHAR_MAP_V1 = [
+        ["A","B","C","D","E","F","G","H"],
+        ["I","J","K","L","M","N","O","P"],
+        ["Q","R","S","T","U","V","W","X"],
+        ["Y","Z","1","2","3","4","5","6"],
+        ["7","8","9","0","!","@","#","$"],
+        ["%","^","&","*","(",")","-","+"],
+        ["?","<",">",",",".","/",":",";"],
+        ["'","\"","[","]","{","}","\\","|"]
+    ];
+
+    const CHAR_MAP_V2_V3 = [
+        ["A","B","C","D"], ["E","F","G","H"],
+        ["I","J","K","L"], ["M","N","O","P"],
+        ["Q","R","S","T"], ["U","V","W","X"],
+        ["Y","Z","1","2"], ["3","4","5","6"]
+    ];
+
+    // 🌟 SHARED & ENGINE-SPECIFIC STATE
+    let currentVersion = VERSIONS[0];
+    let textValue = "";
+    let kbdCenter = { x: 0, y: 0 };
+
+    // v0.1 state
+    let v1_isSessionAlive = false;
+    let v1_activeZone = null;
+    let v1_dragPos = null;
+
+    // v0.2 state
+    let v2_isReady = false;
+    let v2_activeDot = null;
+    let v2_activeKey = null;
+    let v2_dragPos = null;
+
+    // v0.3 state
+    let v3_activeSector = null;
+    let v3_pushProgress = 0;
+    let v3_isMenuOpen = false;
+    let v3_needsReset = false;
+
+    // Latest chorded state
+    let activeTouchId = null;
+    let firstFiredZone = null;
+    let activeCharIndex = null;
+    let fingerPos = null;
+    let ghosts = [];
+    let cursorSparks = [];
+    const comboMap6 = new Map();
+    (() => {
+        let code = 97, extras = [" ", ".", "?", "!"], eIdx = 0;
+        for (let i = 1; i <= 6; i++) {
+            for (let j = 1; j <= 6; j++) {
+                if (i !== j) {
+                    comboMap6.set(`${i}-${j}`, code <= 122 ? String.fromCharCode(code++) : extras[eIdx++]);
+                }
+            }
+        }
+    })();
+
+    const canvas = document.getElementById('kbCanvas');
+    const ctx = canvas.getContext('2d');
+    const textContent = document.getElementById('textContent');
+    const caret = document.getElementById('caret');
+    const btnSpace = document.getElementById('btnSpace');
+    const btnBackspace = document.getElementById('btnBackspace');
+    const pillContainer = document.getElementById('pillContainer');
+    const notesDrawer = document.getElementById('notesDrawer');
+    const btnToggleNotes = document.getElementById('btnToggleNotes');
+
+    function resetEngineState() {
+        v1_isSessionAlive = false; v1_activeZone = null; v1_dragPos = null;
+        v2_isReady = false; v2_activeDot = null; v2_activeKey = null; v2_dragPos = null;
+        v3_activeSector = null; v3_pushProgress = 0; v3_isMenuOpen = false; v3_needsReset = false;
+        activeTouchId = null; firstFiredZone = null; activeCharIndex = null; fingerPos = null;
+    }
+
+    function updateKeyboardCenter() {
+        const isFloating = (currentVersion.engine === "chord6_latest");
+        if (isFloating) {
+            const rect = caret.getBoundingClientRect();
+            kbdCenter = { x: rect.left, y: rect.top + (rect.height / 2) };
+            btnSpace.style.left = (kbdCenter.x - 124) + 'px';
+            btnSpace.style.top = (kbdCenter.y - 124) + 'px';
+            btnBackspace.style.left = (kbdCenter.x + 76) + 'px';
+            btnBackspace.style.top = (kbdCenter.y - 124) + 'px';
+        } else {
+            kbdCenter = { x: window.innerWidth / 2, y: window.innerHeight * 0.62 };
+            btnSpace.style.left = '28px';
+            btnSpace.style.top = (window.innerHeight - 70) + 'px';
+            btnBackspace.style.left = (window.innerWidth - 76) + 'px';
+            btnBackspace.style.top = (window.innerHeight - 70) + 'px';
+        }
+    }
+
+    function selectVersion(ver) {
+        currentVersion = ver;
+        resetEngineState();
+        updateKeyboardCenter();
+        document.querySelectorAll('.pill').forEach(el => {
+            el.classList.toggle('active', el.dataset.id === ver.id);
+        });
+        notesDrawer.innerHTML = `<h3>${ver.title}</h3><p>${ver.notes}</p>`;
+    }
+
+    VERSIONS.forEach(ver => {
+        const btn = document.createElement('button');
+        btn.className = 'pill';
+        btn.textContent = ver.label;
+        btn.dataset.id = ver.id;
+        btn.addEventListener('click', () => selectVersion(ver));
+        pillContainer.appendChild(btn);
+    });
+
+    btnToggleNotes.addEventListener('click', () => {
+        notesDrawer.classList.toggle('open');
+        btnToggleNotes.classList.toggle('active');
+    });
+
+    document.getElementById('btnClear').addEventListener('click', () => {
+        textValue = ""; textContent.textContent = "";
+        resetEngineState(); updateKeyboardCenter();
+    });
+
+    function commitText(char) {
+        textValue += char;
+        textContent.textContent = textValue;
+        updateKeyboardCenter();
+    }
+
+    function deleteChar() {
+        if (textValue.length > 0) {
+            textValue = textValue.slice(0, -1);
+            textContent.textContent = textValue;
+            updateKeyboardCenter();
+        }
+    }
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        updateKeyboardCenter();
+    }
+    window.addEventListener('resize', resize);
+    selectVersion(VERSIONS[0]);
+    resize();
+
+    // =========================================================================
+    // 🕹️ ENGINE 1: v0.1 (Dec 24) — 3x3 Nested Square Grid
+    // =========================================================================
+    const V1_SIZE = 44; // Scaled for mobile screen fit
+    const V1_GAP = 30;
+    function getV1ZoneCenter(origin, index) {
+        const step = V1_SIZE + V1_GAP;
+        const dirs = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+        const [dx, dy] = dirs[index] || [0,0];
+        return { x: origin.x + dx * step, y: origin.y + dy * step };
+    }
+    function inV1Rect(pt, center) {
+        return Math.abs(pt.x - center.x) <= V1_SIZE / 2 && Math.abs(pt.y - center.y) <= V1_SIZE / 2;
+    }
+
+    function handleTouchV1(type, pt) {
+        if (type === 'end') {
+            v1_isSessionAlive = false; v1_activeZone = null; v1_dragPos = null;
+            return;
+        }
+        v1_dragPos = pt;
+        if (type === 'start') {
+            v1_isSessionAlive = inV1Rect(pt, kbdCenter);
+            return;
+        }
+        if (!v1_isSessionAlive) {
+            if (inV1Rect(pt, kbdCenter)) {
+                v1_isSessionAlive = true;
+                v1_activeZone = null;
+            }
+            return;
+        }
+        if (v1_activeZone === null) {
+            for (let i = 0; i < 8; i++) {
+                if (inV1Rect(pt, getV1ZoneCenter(kbdCenter, i))) {
+                    v1_activeZone = i;
+                    break;
+                }
+            }
+        } else {
+            const zOrigin = getV1ZoneCenter(kbdCenter, v1_activeZone);
+            let charFound = false;
+            for (let j = 0; j < 8; j++) {
+                if (inV1Rect(pt, getV1ZoneCenter(zOrigin, j))) {
+                    commitText(CHAR_MAP_V1[v1_activeZone][j]);
+                    v1_isSessionAlive = false;
+                    v1_activeZone = null;
+                    charFound = true;
+                    break;
+                }
+            }
+            if (!charFound && inV1Rect(pt, kbdCenter)) {
+                v1_activeZone = null;
+            }
+        }
+    }
+
+    function drawV1() {
+        const c = kbdCenter;
+        ctx.fillStyle = v1_isSessionAlive ? '#2196F3' : '#888888';
+        ctx.fillRect(c.x - V1_SIZE/2, c.y - V1_SIZE/2, V1_SIZE, V1_SIZE);
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 16px sans-serif';
+
+        for (let i = 0; i < 8; i++) {
+            const zc = getV1ZoneCenter(c, i);
+            if (v1_activeZone === i) {
+                for (let j = 0; j < 8; j++) {
+                    const cc = getV1ZoneCenter(zc, j);
+                    ctx.fillStyle = '#FF9800';
+                    ctx.fillRect(cc.x - V1_SIZE/2, cc.y - V1_SIZE/2, V1_SIZE, V1_SIZE);
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(CHAR_MAP_V1[i][j], cc.x, cc.y);
+                }
+                ctx.fillStyle = 'rgba(33, 150, 243, 0.5)';
+                ctx.fillRect(zc.x - V1_SIZE/2, zc.y - V1_SIZE/2, V1_SIZE, V1_SIZE);
+            } else if (v1_activeZone === null) {
+                ctx.strokeStyle = '#444444';
+                ctx.lineWidth = 2.5;
+                ctx.strokeRect(zc.x - V1_SIZE/2, zc.y - V1_SIZE/2, V1_SIZE, V1_SIZE);
+            }
+        }
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 2: v0.2 (Dec 25) — Circle + 8 Perimeter Dots
+    // =========================================================================
+    const V2_RADIUS = 90;
+    const V2_DOT_ACTIVATE = 42;
+    const V2_THRESHOLD = 52;
+    function getV2DotPos(center, i) {
+        const a = i * (Math.PI / 4);
+        return { x: center.x + V2_RADIUS * Math.cos(a), y: center.y + V2_RADIUS * Math.sin(a) };
+    }
+
+    function handleTouchV2(type, pt) {
+        if (type === 'end') {
+            v2_isReady = false; v2_activeDot = null; v2_activeKey = null; v2_dragPos = null;
+            return;
+        }
+        v2_dragPos = pt;
+        const distCenter = Math.hypot(pt.x - kbdCenter.x, pt.y - kbdCenter.y);
+
+        if (type === 'start') {
+            v2_isReady = (distCenter <= V2_RADIUS);
+            return;
+        }
+        if (distCenter <= V2_RADIUS) {
+            v2_isReady = true; v2_activeDot = null; v2_activeKey = null;
+            return;
+        }
+        if (v2_isReady) {
+            if (v2_activeDot === null) {
+                for (let i = 0; i < 8; i++) {
+                    const dp = getV2DotPos(kbdCenter, i);
+                    if (Math.hypot(pt.x - dp.x, pt.y - dp.y) < V2_DOT_ACTIVATE) {
+                        v2_activeDot = i;
+                        break;
+                    }
+                }
+            } else {
+                const dp = getV2DotPos(kbdCenter, v2_activeDot);
+                const dx = pt.x - dp.x, dy = pt.y - dp.y;
+                const distDot = Math.hypot(dx, dy);
+                const deg = Math.atan2(dy, dx) * 180 / Math.PI;
+
+                if (deg > -135 && deg <= -45) v2_activeKey = 0;      // Up
+                else if (deg > -45 && deg <= 45) v2_activeKey = 1;  // Right
+                else if (deg > 45 && deg <= 135) v2_activeKey = 2;  // Down
+                else v2_activeKey = 3;                              // Left
+
+                if (distDot > V2_THRESHOLD) {
+                    commitText(CHAR_MAP_V2_V3[v2_activeDot][v2_activeKey]);
+                    v2_isReady = false; v2_activeDot = null; v2_activeKey = null;
+                }
+            }
+        }
+    }
+
+    function drawV2() {
+        const c = kbdCenter;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, V2_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = v2_isReady ? '#2196F3' : '#888888';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 15px sans-serif';
+
+        for (let i = 0; i < 8; i++) {
+            const dp = getV2DotPos(c, i);
+            if (v2_isReady && v2_activeDot === i) {
+                ctx.beginPath(); ctx.arc(dp.x, dp.y, 16, 0, Math.PI * 2);
+                ctx.fillStyle = '#2196F3'; ctx.fill();
+
+                const kd = 46;
+                const offsets = [{x:0,y:-kd},{x:kd,y:0},{x:0,y:kd},{x:-kd,y:0}];
+                for (let k = 0; k < 4; k++) {
+                    const kp = { x: dp.x + offsets[k].x, y: dp.y + offsets[k].y };
+                    ctx.beginPath(); ctx.arc(kp.x, kp.y, 20, 0, Math.PI * 2);
+                    ctx.fillStyle = (v2_activeKey === k) ? '#FF9800' : '#444444';
+                    ctx.fill();
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(CHAR_MAP_V2_V3[i][k], kp.x, kp.y);
+                }
+                if (v2_dragPos) {
+                    ctx.beginPath(); ctx.moveTo(dp.x, dp.y); ctx.lineTo(v2_dragPos.x, v2_dragPos.y);
+                    ctx.strokeStyle = 'rgba(33, 150, 243, 0.5)'; ctx.lineWidth = 4; ctx.stroke();
+                }
+            } else {
+                ctx.beginPath(); ctx.arc(dp.x, dp.y, 12, 0, Math.PI * 2);
+                ctx.fillStyle = '#444444'; ctx.fill();
+            }
+        }
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 3: v0.3 (Dec 26) — Push Triggers & Rotated Tangents
+    // =========================================================================
+    const V3_OUTER = 80;
+    const V3_INNER = 68;
+    const V3_MENU_OFFSET = 45;
+    const V3_THRESHOLD = 36;
+
+    function handleTouchV3(type, pt) {
+        if (type === 'end') {
+            v3_activeSector = null; v3_pushProgress = 0; v3_isMenuOpen = false; v3_needsReset = false;
+            return;
+        }
+        const dx = pt.x - kbdCenter.x, dy = pt.y - kbdCenter.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (type === 'start') {
+            if (dist < V3_OUTER) {
+                v3_pushProgress = 0; v3_isMenuOpen = false; v3_activeSector = null; v3_needsReset = false;
+            } else {
+                v3_needsReset = true;
+            }
+            return;
+        }
+        if (v3_needsReset) {
+            if (dist < V3_INNER) v3_needsReset = false;
+            else return;
+        }
+
+        let angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angleDeg < 0) angleDeg += 360;
+        const sector = Math.floor((angleDeg + 22.5) / 45) % 8;
+
+        if (!v3_isMenuOpen && v3_activeSector !== sector) {
+            v3_activeSector = sector;
+        }
+
+        const effectiveDist = Math.min(dist, V3_OUTER);
+        v3_pushProgress = Math.max(0, Math.min(1, (effectiveDist - (V3_OUTER - 30)) / 30));
+
+        if (effectiveDist >= V3_OUTER - 5) {
+            v3_isMenuOpen = true;
+        }
+
+        if (v3_isMenuOpen && v3_activeSector !== null) {
+            const sRad = (v3_activeSector * 45) * Math.PI / 180;
+            const contact = {
+                x: kbdCenter.x + V3_OUTER * Math.cos(sRad),
+                y: kbdCenter.y + V3_OUTER * Math.sin(sRad)
+            };
+            const lDx = pt.x - contact.x, lDy = pt.y - contact.y;
+            const rotX = lDx * Math.cos(-sRad) - lDy * Math.sin(-sRad);
+            const rotY = lDx * Math.sin(-sRad) + lDy * Math.cos(-sRad);
+
+            let sel = -1;
+            if (rotX > V3_THRESHOLD) sel = 0;        // Out
+            else if (rotY > V3_THRESHOLD) sel = 1;   // Right (CW Tangent)
+            else if (rotX < -V3_THRESHOLD) sel = 2;  // In
+            else if (rotY < -V3_THRESHOLD) sel = 3;  // Left (CCW Tangent)
+
+            if (sel !== -1) {
+                commitText(CHAR_MAP_V2_V3[v3_activeSector][sel]);
+                v3_isMenuOpen = false; v3_activeSector = null; v3_pushProgress = 0;
+                v3_needsReset = true;
+            }
+        }
+    }
+
+    function drawV3() {
+        const c = kbdCenter;
+        ctx.beginPath(); ctx.arc(c.x, c.y, V3_OUTER, 0, Math.PI * 2);
+        ctx.strokeStyle = '#888888'; ctx.lineWidth = 3; ctx.stroke();
+
+        for (let i = 0; i < 8; i++) {
+            const isSel = (i === v3_activeSector);
+            const r = isSel ? V3_INNER + v3_pushProgress * (V3_OUTER - V3_INNER) : V3_INNER;
+            const rad = (i * 45) * Math.PI / 180;
+            const pos = { x: c.x + r * Math.cos(rad), y: c.y + r * Math.sin(rad) };
+
+            if (i % 2 === 0) {
+                ctx.save();
+                ctx.translate(pos.x, pos.y);
+                ctx.rotate(rad);
+                ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(0, 14);
+                ctx.strokeStyle = isSel ? '#2196F3' : '#444444';
+                ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.stroke();
+                ctx.restore();
+            } else {
+                ctx.beginPath(); ctx.arc(pos.x, pos.y, 9, 0, Math.PI * 2);
+                ctx.fillStyle = isSel ? '#2196F3' : '#444444'; ctx.fill();
+            }
+        }
+
+        if (v3_isMenuOpen && v3_activeSector !== null) {
+            const i = v3_activeSector;
+            const rad = (i * 45) * Math.PI / 180;
+            const contact = { x: c.x + V3_OUTER * Math.cos(rad), y: c.y + V3_OUTER * Math.sin(rad) };
+            const letters = CHAR_MAP_V2_V3[i];
+
+            ctx.save();
+            ctx.translate(contact.x, contact.y);
+            ctx.rotate(rad);
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = 'bold 18px sans-serif';
+            ctx.fillStyle = '#111827';
+
+            ctx.fillText(letters[0], V3_MENU_OFFSET, 0);   // Out
+            ctx.fillText(letters[1], 0, V3_MENU_OFFSET);   // CW
+            ctx.fillText(letters[2], -V3_MENU_OFFSET, 0);  // In
+            ctx.fillText(letters[3], 0, -V3_MENU_OFFSET);  // CCW
+            ctx.restore();
+        }
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 4: Latest 6-Zone Floating Chorded Keyboard
+    // =========================================================================
+    const L_INNER = 60, L_MAIN = 73, L_TEXT = 86, L_OUTER = 99;
+    const L_STEP = 60, L_GAP = 18, L_SWEEP = 42;
+    function getLatestZone(idx) { return ((idx + 2) % 6) + 1; }
+
+    function getLatestHitIndex(x, y) {
+        const dx = x - kbdCenter.x, dy = y - kbdCenter.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < L_MAIN || dist > L_OUTER) return null;
+        let deg = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (deg < 0) deg += 360;
+        const shifted = (deg + 90) % 360;
+        const closest = Math.round(shifted / L_STEP) % 6;
+        let diff = Math.abs(shifted - closest * L_STEP);
+        if (diff > 180) diff = 360 - diff;
+        return (diff <= L_SWEEP / 2) ? closest : null;
+    }
+
+    function handleTouchLatest(e) {
+        let activeTouch = null;
+        if (activeTouchId !== null) {
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].identifier === activeTouchId) { activeTouch = e.touches[i]; break; }
+            }
+            if (!activeTouch) { activeTouchId = null; activeCharIndex = null; fingerPos = null; }
+        }
+        if (activeTouchId === null) {
+            for (let i = 0; i < e.touches.length; i++) {
+                const t = e.touches[i];
+                if (getLatestHitIndex(t.clientX, t.clientY) !== null) {
+                    activeTouchId = t.identifier; activeTouch = t; break;
+                }
+            }
+        }
+        if (!activeTouch) return;
+        fingerPos = { x: activeTouch.clientX, y: activeTouch.clientY };
+        const dist = Math.hypot(fingerPos.x - kbdCenter.x, fingerPos.y - kbdCenter.y);
+
+        if (dist > L_OUTER) {
+            activeCharIndex = null;
+        } else if (dist > L_INNER) {
+            if (dist >= L_MAIN) activeCharIndex = getLatestHitIndex(fingerPos.x, fingerPos.y);
+        } else if (activeCharIndex !== null) {
+            const firedZone = getLatestZone(activeCharIndex);
+            const isCancel = (firstFiredZone !== null && firedZone === firstFiredZone);
+            const mapped = (firstFiredZone !== null && !isCancel) ? comboMap6.get(`${firstFiredZone}-${firedZone}`) : null;
+            if (isCancel || firstFiredZone === null || mapped) {
+                const rad = ((activeCharIndex * L_STEP) - 90) * Math.PI / 180;
+                const now = Date.now();
+                ghosts.push({
+                    text: isCancel ? "🔙" : firedZone.toString(),
+                    x: kbdCenter.x + Math.cos(rad) * L_TEXT,
+                    y: kbdCenter.y + Math.sin(rad) * L_TEXT,
+                    isCancelBtn: isCancel, startTime: now
+                });
+                cursorSparks.push({ x: fingerPos.x, y: fingerPos.y, isCancelBtn: isCancel, startTime: now });
+                if (firstFiredZone === null) firstFiredZone = firedZone;
+                else {
+                    if (!isCancel) commitText(mapped);
+                    firstFiredZone = null;
+                }
+            }
+            activeCharIndex = null;
+        }
+    }
+
+    function drawLatest() {
+        const cx = kbdCenter.x, cy = kbdCenter.y, now = Date.now();
+        for (let i = 0; i < 6; i++) {
+            const zone = getLatestZone(i);
+            if (zone === firstFiredZone) {
+                const sRad = ((i * L_STEP) - 90 - L_SWEEP / 2) * Math.PI / 180;
+                const eRad = sRad + L_SWEEP * Math.PI / 180;
+                ctx.beginPath();
+                ctx.arc(cx, cy, L_OUTER, sRad, eRad, false);
+                ctx.arc(cx, cy, L_MAIN, eRad, sRad, true);
+                ctx.closePath(); ctx.fillStyle = '#4CAF50'; ctx.fill();
+            }
+        }
+        ctx.beginPath(); ctx.arc(cx, cy, L_INNER, 0, Math.PI * 2);
+        ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 6; ctx.stroke();
+
+        const bCol = 'rgba(128,128,128,0.6)';
+        for (let i = 0; i < 6; i++) {
+            const sDeg = (i * L_STEP) - 90 - L_SWEEP / 2;
+            const sRad = sDeg * Math.PI / 180, eRad = (sDeg + L_SWEEP) * Math.PI / 180;
+            ctx.beginPath(); ctx.arc(cx, cy, L_MAIN, sRad, eRad); ctx.strokeStyle = bCol; ctx.lineWidth = 3; ctx.stroke();
+            ctx.beginPath(); ctx.arc(cx, cy, L_OUTER, sRad, eRad); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + Math.cos(sRad)*L_MAIN, cy + Math.sin(sRad)*L_MAIN);
+            ctx.lineTo(cx + Math.cos(sRad)*L_OUTER, cy + Math.sin(sRad)*L_OUTER); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx + Math.cos(eRad)*L_MAIN, cy + Math.sin(eRad)*L_MAIN);
+            ctx.lineTo(cx + Math.cos(eRad)*L_OUTER, cy + Math.sin(eRad)*L_OUTER); ctx.stroke();
+        }
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 27px sans-serif';
+        for (let i = 0; i < 6; i++) {
+            const zone = getLatestZone(i);
+            const rad = ((i * L_STEP) - 90) * Math.PI / 180;
+            ctx.fillStyle = (zone === firstFiredZone) ? 'white' : 'black';
+            ctx.fillText(zone.toString(), cx + Math.cos(rad)*L_TEXT, cy + Math.sin(rad)*L_TEXT);
+        }
+
+        ghosts = ghosts.filter(g => {
+            const age = now - g.startTime; if (age > 300) return false;
+            const a = 1 - age / 300;
+            ctx.fillStyle = g.isCancelBtn ? `rgba(255,152,0,${a})` : `rgba(76,175,80,${a})`;
+            ctx.fillText(g.text, g.x, g.y); return true;
+        });
+        cursorSparks = cursorSparks.filter(s => {
+            const age = now - s.startTime; if (age > 300) return false;
+            const p = age / 300, r = 24 + 36 * p, a = 1 - p;
+            const col = s.isCancelBtn ? `255,152,0` : `76,175,80`;
+            ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${col},${a*0.4})`; ctx.fill();
+            ctx.strokeStyle = `rgba(${col},${a})`; ctx.lineWidth = 6; ctx.stroke();
+            return true;
+        });
+        if (fingerPos) {
+            ctx.beginPath(); ctx.arc(fingerPos.x, fingerPos.y, 24, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(33,150,243,0.3)'; ctx.fill();
+            ctx.strokeStyle = 'rgba(33,150,243,0.8)'; ctx.lineWidth = 2; ctx.stroke();
+            ctx.beginPath(); ctx.arc(fingerPos.x, fingerPos.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = 'white'; ctx.fill();
+        }
+    }
+
+    // =========================================================================
+    // 📡 MASTER TOUCH & RENDER ROUTER
+    // =========================================================================
+    function isUITouch(e) {
+        return e.target.closest('.ui-panel') || e.target.classList.contains('btn');
+    }
+
+    function routeTouch(type, e) {
+        if (currentVersion.engine === "chord6_latest") {
+            handleTouchLatest(e);
+            return;
+        }
+        if (e.touches.length === 0) {
+            if (currentVersion.engine === "grid_v1") handleTouchV1('end', null);
+            if (currentVersion.engine === "dots_v2") handleTouchV2('end', null);
+            if (currentVersion.engine === "push_v3") handleTouchV3('end', null);
+            return;
+        }
+        const pt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        if (currentVersion.engine === "grid_v1") handleTouchV1(type, pt);
+        if (currentVersion.engine === "dots_v2") handleTouchV2(type, pt);
+        if (currentVersion.engine === "push_v3") handleTouchV3(type, pt);
+    }
+
+    document.addEventListener('touchstart', e => { if (!isUITouch(e)) { e.preventDefault(); routeTouch('start', e); } }, {passive: false});
+    document.addEventListener('touchmove', e => { if (!isUITouch(e)) { e.preventDefault(); routeTouch('move', e); } }, {passive: false});
+    document.addEventListener('touchend', e => { if (!isUITouch(e)) { e.preventDefault(); routeTouch('end', e); } }, {passive: false});
+    document.addEventListener('touchcancel', e => { routeTouch('end', e); }, {passive: false});
+
+    btnSpace.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); commitText(" "); }, {passive: false});
+    btnBackspace.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); deleteChar(); }, {passive: false});
+
+    function renderLoop() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (currentVersion.engine === "grid_v1") drawV1();
+        else if (currentVersion.engine === "dots_v2") drawV2();
+        else if (currentVersion.engine === "push_v3") drawV3();
+        else if (currentVersion.engine === "chord6_latest") drawLatest();
+        requestAnimationFrame(renderLoop);
+    }
+    requestAnimationFrame(renderLoop);
+</script>
+</body>
+</html>
