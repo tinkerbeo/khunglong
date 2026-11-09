@@ -120,7 +120,7 @@
     <div class="btn" id="btnBackspace">⌫</div>
 
 <script>
-    // 📚 VERSION ARCHIVE (Growing with each batch!)
+    // 📚 CHRONOLOGICAL VERSION ARCHIVE (Batches 1–4)
     const VERSIONS = [
         {
             id: "v0.1",
@@ -140,8 +140,95 @@
             id: "v0.3",
             label: "v0.3 • Dec 26",
             title: "v0.3 (Dec 26) — Push Triggers (Bars & Dots)",
-            notes: "Alternating Bars (E/S/W/N) and Dots (diagonals) sit inside the outer wall. Push a trigger outward to the wall to pop open 4 rotated local letters (Out, CW, In, CCW).",
-            engine: "push_v3"
+            notes: "Alternating Bars (E/S/W/N) and Dots (diagonals) sit at 70px inside the 80px wall. Push a trigger outward to the wall to pop open 4 rotated local letters (Out, CW, In, CCW).",
+            engine: "push_v3",
+            innerR: 70
+        },
+        {
+            id: "v0.4",
+            label: "v0.4 • Jan 6",
+            title: "v0.4 (Jan 6) — Low-Level Push Triggers (Hard Stop)",
+            notes: "Switched from high-level drag gestures to raw pointer event loops. Widened push travel (60px to 80px) and strictly terminates the touch session after firing 1 character (must lift finger).",
+            engine: "push_v4_lowlevel",
+            innerR: 60
+        },
+        {
+            id: "v0.5",
+            label: "v0.5 • Jan 7",
+            title: "v0.5 (Jan 7) — Slide-to-Start & Sticky Zone Lock (Visual)",
+            notes: "Visual mechanics testbed (no text output). Slide into the small 15px center ring to turn it Green. Drag out to 80px to lock onto a Yellow zone dot (with a 65px sticky boundary ring). Leaving the 65px ring breaks the lock!",
+            engine: "sticky_dot_v5"
+        },
+        {
+            id: "v0.6",
+            label: "v0.6 • Feb 19 (1)",
+            title: "v0.6 (Feb 19-1) — Draggable Thumb & 8-Arc Ring (Free)",
+            notes: "Visual mechanics testbed. Drag the 20px center thumb circle (turns Green when active) toward the 55px 8-slice outer ring. Touching the ring (dist >= 35px) highlights the active arc in thick Blue.",
+            engine: "thumb_arc_v6",
+            snapAxis: false
+        },
+        {
+            id: "v0.7",
+            label: "v0.7 • Feb 19 (2)",
+            title: "v0.7 (Feb 19-2) — Limited Axis / Snapped Rail Thumb",
+            notes: "Visual mechanics testbed. Identical to Feb 19-1, except once the thumb reaches the outer ring, the Green thumb visually snaps onto the strict 45° radial rail of the active zone!",
+            engine: "thumb_arc_v6",
+            snapAxis: true
+        },
+        {
+            id: "v0.8",
+            label: "v0.8 • Apr 10",
+            title: "v0.8 (Apr 10) — Continuous Inward Swipe & Spark",
+            notes: "First outside-in prototype! Start or exit outside the 40px gray circle to arm. Swipe inward across the boundary to immediately fire A–H and flash a 150ms bright orange inner arc.",
+            engine: "inward_spark_v8"
+        },
+        {
+            id: "v0.9",
+            label: "v0.9 • Apr 20",
+            title: "v0.9 (Apr 20) — Gaussian Rubber Membrane",
+            notes: "Exit the 73px dashed outer ring to arm. Push inward against the 65px blue rubber membrane (deforms via a 72-point Gaussian bell curve) until touching the 35px inner core to snap & fire A–H!",
+            engine: "gaussian_membrane_v9"
+        },
+        {
+            id: "v0.10",
+            label: "v0.10 • May 20 (1)",
+            title: "v0.10 (May 20-1) — Mathy Cosine Pull Vector",
+            notes: "Enter the 80px ring from outside to lock onto an entry contact point (turns Orange). Pull 60px away from that contact point—stretching a 60° cosine curve and thickening the stroke—to fire A–H.",
+            engine: "mathy_pull_v10"
+        },
+        {
+            id: "v0.11",
+            label: "v0.11 • May 20 (2)",
+            title: "v0.11 (May 20-2) — Volume-Preserving Jelly & Spring",
+            notes: "Push inward on the 70px ring: squishes inward at the finger (<90°) while bulging outward on the sides (<180°) to preserve volume! Push 40px deep to fire A–H (flashes Green) and spring-bounce back.",
+            engine: "jelly_spring_v11"
+        },
+        {
+            id: "v0.12",
+            label: "v0.12 • June",
+            title: "v0.12 (June) — Cubic Bezier Jelly Circle",
+            notes: "Replaces the 72-point trig loop with 4 Cubic Bezier curves (magic = 0.55228) rotated dynamically to face the finger! Push 50px deep into the 100px ring to fire A–H and trigger a bouncy spring snap.",
+            engine: "bezier_v12"
+        },
+        {
+            id: "v0.13",
+            label: "v0.13 • Jun 22",
+            title: "v0.13 (Jun 22) — Ring Trigger & Sliding Dot (v.02)",
+            notes: "Grab one of the 8 green 13px aim zones between the 84px outer and 60px inner rings. Pull inward past the inner ring: a black dot slides from +20px to the ring edge and fires with a 300ms fading Ghost!",
+            engine: "ring_trigger_v13_14",
+            textOffset: 40,
+            dotStartOffset: 20,
+            dotEndOffset: 0
+        },
+        {
+            id: "v0.14",
+            label: "v0.14 • Jul 2",
+            title: "v0.14 (Jul 2) — Ring Trigger Extended Offsets (v.03)",
+            notes: "Refines v.02 by pushing the character label (+60px) and sliding dot track (+33px to +17px) further outside the 84px main ring so your finger never covers the visual feedback.",
+            engine: "ring_trigger_v13_14",
+            textOffset: 60,
+            dotStartOffset: 33,
+            dotEndOffset: 17
         },
         {
             id: "latest",
@@ -152,7 +239,7 @@
         }
     ];
 
-    // 🗺️ CHARACTER MAPS FOR BATCH 1
+    // 🗺️ CHARACTER MAPS
     const CHAR_MAP_V1 = [
         ["A","B","C","D","E","F","G","H"],
         ["I","J","K","L","M","N","O","P"],
@@ -171,35 +258,35 @@
         ["Y","Z","1","2"], ["3","4","5","6"]
     ];
 
-    // 🌟 SHARED & ENGINE-SPECIFIC STATE
+    const CHARS_AH = ["A", "B", "C", "D", "E", "F", "G", "H"];
+
+    // 🌟 STATE
     let currentVersion = VERSIONS[0];
     let textValue = "";
     let kbdCenter = { x: 0, y: 0 };
 
     // v0.1 state
-    let v1_isSessionAlive = false;
-    let v1_activeZone = null;
-    let v1_dragPos = null;
-
+    let v1_isSessionAlive = false, v1_activeZone = null, v1_dragPos = null;
     // v0.2 state
-    let v2_isReady = false;
-    let v2_activeDot = null;
-    let v2_activeKey = null;
-    let v2_dragPos = null;
-
-    // v0.3 state
-    let v3_activeSector = null;
-    let v3_pushProgress = 0;
-    let v3_isMenuOpen = false;
-    let v3_needsReset = false;
+    let v2_isReady = false, v2_activeDot = null, v2_activeKey = null, v2_dragPos = null;
+    // v0.3 & v0.4 state
+    let v3_activeSector = null, v3_pushProgress = 0, v3_isMenuOpen = false, v3_isValidSession = false;
+    // v0.5 & v0.6/v0.7 state
+    let simple_isAlive = false, simple_activeZone = null, simple_dragPos = null;
+    // v0.8 & v0.9 state
+    let v8_isArmed = false, v8_dragPos = null, v8_sparkIndex = null, v8_sparkUntil = 0;
+    // v0.10 state
+    let v10_swipeState = 0, v10_dragPos = null, v10_activeArc = null, v10_contactPt = null, v10_pullProgress = 0;
+    // v0.11 & v0.12 state (Jelly & Bezier Spring)
+    let v11_swipeState = 0, v11_pushDepth = 0, v11_pushVel = 0, v11_springActive = false;
+    let v11_pushAngle = 0, v11_activeArc = null, v11_sparkIndex = null, v11_sparkUntil = 0;
+    // v0.13 & v0.14 state (Ring Trigger v.02 & v.03)
+    let v13_activeCharIndex = null, v13_dotProgress = 0, v13_sparkIndex = null, v13_sparkUntil = 0;
+    let v13_ghosts = [];
 
     // Latest chorded state
-    let activeTouchId = null;
-    let firstFiredZone = null;
-    let activeCharIndex = null;
-    let fingerPos = null;
-    let ghosts = [];
-    let cursorSparks = [];
+    let activeTouchId = null, firstFiredZone = null, activeCharIndex = null, fingerPos = null;
+    let ghosts = [], cursorSparks = [];
     const comboMap6 = new Map();
     (() => {
         let code = 97, extras = [" ", ".", "?", "!"], eIdx = 0;
@@ -225,7 +312,13 @@
     function resetEngineState() {
         v1_isSessionAlive = false; v1_activeZone = null; v1_dragPos = null;
         v2_isReady = false; v2_activeDot = null; v2_activeKey = null; v2_dragPos = null;
-        v3_activeSector = null; v3_pushProgress = 0; v3_isMenuOpen = false; v3_needsReset = false;
+        v3_activeSector = null; v3_pushProgress = 0; v3_isMenuOpen = false; v3_isValidSession = false;
+        simple_isAlive = false; simple_activeZone = null; simple_dragPos = null;
+        v8_isArmed = false; v8_dragPos = null; v8_sparkIndex = null; v8_sparkUntil = 0;
+        v10_swipeState = 0; v10_dragPos = null; v10_activeArc = null; v10_contactPt = null; v10_pullProgress = 0;
+        v11_swipeState = 0; v11_pushDepth = 0; v11_pushVel = 0; v11_springActive = false;
+        v11_pushAngle = 0; v11_activeArc = null; v11_sparkIndex = null; v11_sparkUntil = 0;
+        v13_activeCharIndex = null; v13_dotProgress = 0; v13_sparkIndex = null; v13_sparkUntil = 0; v13_ghosts = [];
         activeTouchId = null; firstFiredZone = null; activeCharIndex = null; fingerPos = null;
     }
 
@@ -302,8 +395,7 @@
     // =========================================================================
     // 🕹️ ENGINE 1: v0.1 (Dec 24) — 3x3 Nested Square Grid
     // =========================================================================
-    const V1_SIZE = 44; // Scaled for mobile screen fit
-    const V1_GAP = 30;
+    const V1_SIZE = 44, V1_GAP = 30;
     function getV1ZoneCenter(origin, index) {
         const step = V1_SIZE + V1_GAP;
         const dirs = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
@@ -313,30 +405,17 @@
     function inV1Rect(pt, center) {
         return Math.abs(pt.x - center.x) <= V1_SIZE / 2 && Math.abs(pt.y - center.y) <= V1_SIZE / 2;
     }
-
     function handleTouchV1(type, pt) {
-        if (type === 'end') {
-            v1_isSessionAlive = false; v1_activeZone = null; v1_dragPos = null;
-            return;
-        }
+        if (type === 'end') { v1_isSessionAlive = false; v1_activeZone = null; v1_dragPos = null; return; }
         v1_dragPos = pt;
-        if (type === 'start') {
-            v1_isSessionAlive = inV1Rect(pt, kbdCenter);
-            return;
-        }
+        if (type === 'start') { v1_isSessionAlive = inV1Rect(pt, kbdCenter); return; }
         if (!v1_isSessionAlive) {
-            if (inV1Rect(pt, kbdCenter)) {
-                v1_isSessionAlive = true;
-                v1_activeZone = null;
-            }
+            if (inV1Rect(pt, kbdCenter)) { v1_isSessionAlive = true; v1_activeZone = null; }
             return;
         }
         if (v1_activeZone === null) {
             for (let i = 0; i < 8; i++) {
-                if (inV1Rect(pt, getV1ZoneCenter(kbdCenter, i))) {
-                    v1_activeZone = i;
-                    break;
-                }
+                if (inV1Rect(pt, getV1ZoneCenter(kbdCenter, i))) { v1_activeZone = i; break; }
             }
         } else {
             const zOrigin = getV1ZoneCenter(kbdCenter, v1_activeZone);
@@ -344,26 +423,17 @@
             for (let j = 0; j < 8; j++) {
                 if (inV1Rect(pt, getV1ZoneCenter(zOrigin, j))) {
                     commitText(CHAR_MAP_V1[v1_activeZone][j]);
-                    v1_isSessionAlive = false;
-                    v1_activeZone = null;
-                    charFound = true;
-                    break;
+                    v1_isSessionAlive = false; v1_activeZone = null; charFound = true; break;
                 }
             }
-            if (!charFound && inV1Rect(pt, kbdCenter)) {
-                v1_activeZone = null;
-            }
+            if (!charFound && inV1Rect(pt, kbdCenter)) v1_activeZone = null;
         }
     }
-
     function drawV1() {
         const c = kbdCenter;
         ctx.fillStyle = v1_isSessionAlive ? '#2196F3' : '#888888';
         ctx.fillRect(c.x - V1_SIZE/2, c.y - V1_SIZE/2, V1_SIZE, V1_SIZE);
-
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.font = 'bold 16px sans-serif';
-
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 16px sans-serif';
         for (let i = 0; i < 8; i++) {
             const zc = getV1ZoneCenter(c, i);
             if (v1_activeZone === i) {
@@ -377,8 +447,7 @@
                 ctx.fillStyle = 'rgba(33, 150, 243, 0.5)';
                 ctx.fillRect(zc.x - V1_SIZE/2, zc.y - V1_SIZE/2, V1_SIZE, V1_SIZE);
             } else if (v1_activeZone === null) {
-                ctx.strokeStyle = '#444444';
-                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = '#444444'; ctx.lineWidth = 2.5;
                 ctx.strokeRect(zc.x - V1_SIZE/2, zc.y - V1_SIZE/2, V1_SIZE, V1_SIZE);
             }
         }
@@ -387,50 +456,32 @@
     // =========================================================================
     // 🕹️ ENGINE 2: v0.2 (Dec 25) — Circle + 8 Perimeter Dots
     // =========================================================================
-    const V2_RADIUS = 90;
-    const V2_DOT_ACTIVATE = 42;
-    const V2_THRESHOLD = 52;
+    const V2_RADIUS = 90, V2_DOT_ACTIVATE = 42, V2_THRESHOLD = 52;
     function getV2DotPos(center, i) {
         const a = i * (Math.PI / 4);
         return { x: center.x + V2_RADIUS * Math.cos(a), y: center.y + V2_RADIUS * Math.sin(a) };
     }
-
     function handleTouchV2(type, pt) {
-        if (type === 'end') {
-            v2_isReady = false; v2_activeDot = null; v2_activeKey = null; v2_dragPos = null;
-            return;
-        }
+        if (type === 'end') { v2_isReady = false; v2_activeDot = null; v2_activeKey = null; v2_dragPos = null; return; }
         v2_dragPos = pt;
         const distCenter = Math.hypot(pt.x - kbdCenter.x, pt.y - kbdCenter.y);
-
-        if (type === 'start') {
-            v2_isReady = (distCenter <= V2_RADIUS);
-            return;
-        }
-        if (distCenter <= V2_RADIUS) {
-            v2_isReady = true; v2_activeDot = null; v2_activeKey = null;
-            return;
-        }
+        if (type === 'start') { v2_isReady = (distCenter <= V2_RADIUS); return; }
+        if (distCenter <= V2_RADIUS) { v2_isReady = true; v2_activeDot = null; v2_activeKey = null; return; }
         if (v2_isReady) {
             if (v2_activeDot === null) {
                 for (let i = 0; i < 8; i++) {
                     const dp = getV2DotPos(kbdCenter, i);
-                    if (Math.hypot(pt.x - dp.x, pt.y - dp.y) < V2_DOT_ACTIVATE) {
-                        v2_activeDot = i;
-                        break;
-                    }
+                    if (Math.hypot(pt.x - dp.x, pt.y - dp.y) < V2_DOT_ACTIVATE) { v2_activeDot = i; break; }
                 }
             } else {
                 const dp = getV2DotPos(kbdCenter, v2_activeDot);
                 const dx = pt.x - dp.x, dy = pt.y - dp.y;
                 const distDot = Math.hypot(dx, dy);
                 const deg = Math.atan2(dy, dx) * 180 / Math.PI;
-
-                if (deg > -135 && deg <= -45) v2_activeKey = 0;      // Up
-                else if (deg > -45 && deg <= 45) v2_activeKey = 1;  // Right
-                else if (deg > 45 && deg <= 135) v2_activeKey = 2;  // Down
-                else v2_activeKey = 3;                              // Left
-
+                if (deg > -135 && deg <= -45) v2_activeKey = 0;
+                else if (deg > -45 && deg <= 45) v2_activeKey = 1;
+                else if (deg > 45 && deg <= 135) v2_activeKey = 2;
+                else v2_activeKey = 3;
                 if (distDot > V2_THRESHOLD) {
                     commitText(CHAR_MAP_V2_V3[v2_activeDot][v2_activeKey]);
                     v2_isReady = false; v2_activeDot = null; v2_activeKey = null;
@@ -438,33 +489,23 @@
             }
         }
     }
-
     function drawV2() {
         const c = kbdCenter;
-        ctx.beginPath();
-        ctx.arc(c.x, c.y, V2_RADIUS, 0, Math.PI * 2);
-        ctx.strokeStyle = v2_isReady ? '#2196F3' : '#888888';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.font = 'bold 15px sans-serif';
-
+        ctx.beginPath(); ctx.arc(c.x, c.y, V2_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = v2_isReady ? '#2196F3' : '#888888'; ctx.lineWidth = 4; ctx.stroke();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = 'bold 15px sans-serif';
         for (let i = 0; i < 8; i++) {
             const dp = getV2DotPos(c, i);
             if (v2_isReady && v2_activeDot === i) {
                 ctx.beginPath(); ctx.arc(dp.x, dp.y, 16, 0, Math.PI * 2);
                 ctx.fillStyle = '#2196F3'; ctx.fill();
-
                 const kd = 46;
                 const offsets = [{x:0,y:-kd},{x:kd,y:0},{x:0,y:kd},{x:-kd,y:0}];
                 for (let k = 0; k < 4; k++) {
                     const kp = { x: dp.x + offsets[k].x, y: dp.y + offsets[k].y };
                     ctx.beginPath(); ctx.arc(kp.x, kp.y, 20, 0, Math.PI * 2);
-                    ctx.fillStyle = (v2_activeKey === k) ? '#FF9800' : '#444444';
-                    ctx.fill();
-                    ctx.fillStyle = 'white';
-                    ctx.fillText(CHAR_MAP_V2_V3[i][k], kp.x, kp.y);
+                    ctx.fillStyle = (v2_activeKey === k) ? '#FF9800' : '#444444'; ctx.fill();
+                    ctx.fillStyle = 'white'; ctx.fillText(CHAR_MAP_V2_V3[i][k], kp.x, kp.y);
                 }
                 if (v2_dragPos) {
                     ctx.beginPath(); ctx.moveTo(dp.x, dp.y); ctx.lineTo(v2_dragPos.x, v2_dragPos.y);
@@ -478,48 +519,38 @@
     }
 
     // =========================================================================
-    // 🕹️ ENGINE 3: v0.3 (Dec 26) — Push Triggers & Rotated Tangents
+    // 🕹️ ENGINE 3 & 4: v0.3 (Dec 26) & v0.4 (Jan 6) — Push Triggers
     // =========================================================================
-    const V3_OUTER = 80;
-    const V3_INNER = 68;
-    const V3_MENU_OFFSET = 45;
-    const V3_THRESHOLD = 36;
-
-    function handleTouchV3(type, pt) {
+    const V3_OUTER = 80, V3_MENU_OFFSET = 55, V3_THRESHOLD = 42;
+    function handleTouchV3V4(type, pt, isLowLevelJan6) {
         if (type === 'end') {
-            v3_activeSector = null; v3_pushProgress = 0; v3_isMenuOpen = false; v3_needsReset = false;
+            v3_activeSector = null; v3_pushProgress = 0; v3_isMenuOpen = false; v3_isValidSession = false;
             return;
         }
         const dx = pt.x - kbdCenter.x, dy = pt.y - kbdCenter.y;
         const dist = Math.hypot(dx, dy);
 
         if (type === 'start') {
-            if (dist < V3_OUTER) {
-                v3_pushProgress = 0; v3_isMenuOpen = false; v3_activeSector = null; v3_needsReset = false;
-            } else {
-                v3_needsReset = true;
+            v3_isValidSession = (dist < V3_OUTER);
+            if (v3_isValidSession) {
+                v3_pushProgress = 0; v3_isMenuOpen = false; v3_activeSector = null;
             }
             return;
         }
-        if (v3_needsReset) {
-            if (dist < V3_INNER) v3_needsReset = false;
-            else return;
-        }
+        if (!v3_isValidSession) return;
 
         let angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
         if (angleDeg < 0) angleDeg += 360;
         const sector = Math.floor((angleDeg + 22.5) / 45) % 8;
 
-        if (!v3_isMenuOpen && v3_activeSector !== sector) {
+        if (v3_activeSector !== sector) {
             v3_activeSector = sector;
+            v3_isMenuOpen = false;
         }
 
         const effectiveDist = Math.min(dist, V3_OUTER);
-        v3_pushProgress = Math.max(0, Math.min(1, (effectiveDist - (V3_OUTER - 30)) / 30));
-
-        if (effectiveDist >= V3_OUTER - 5) {
-            v3_isMenuOpen = true;
-        }
+        v3_pushProgress = Math.max(0, Math.min(1, (effectiveDist - (V3_OUTER - 40)) / 40));
+        v3_isMenuOpen = (effectiveDist >= V3_OUTER - 5);
 
         if (v3_isMenuOpen && v3_activeSector !== null) {
             const sRad = (v3_activeSector * 45) * Math.PI / 180;
@@ -532,40 +563,38 @@
             const rotY = lDx * Math.sin(-sRad) + lDy * Math.cos(-sRad);
 
             let sel = -1;
-            if (rotX > V3_THRESHOLD) sel = 0;        // Out
-            else if (rotY > V3_THRESHOLD) sel = 1;   // Right (CW Tangent)
-            else if (rotX < -V3_THRESHOLD) sel = 2;  // In
-            else if (rotY < -V3_THRESHOLD) sel = 3;  // Left (CCW Tangent)
+            if (rotX > V3_THRESHOLD) sel = 0;
+            else if (rotY > V3_THRESHOLD) sel = 1;
+            else if (rotX < -V3_THRESHOLD) sel = 2;
+            else if (rotY < -V3_THRESHOLD) sel = 3;
 
             if (sel !== -1) {
                 commitText(CHAR_MAP_V2_V3[v3_activeSector][sel]);
                 v3_isMenuOpen = false; v3_activeSector = null; v3_pushProgress = 0;
-                v3_needsReset = true;
+                if (isLowLevelJan6) v3_isValidSession = false;
             }
         }
     }
-
-    function drawV3() {
+    function drawV3V4() {
         const c = kbdCenter;
+        const innerR = currentVersion.innerR || 70;
         ctx.beginPath(); ctx.arc(c.x, c.y, V3_OUTER, 0, Math.PI * 2);
         ctx.strokeStyle = '#888888'; ctx.lineWidth = 3; ctx.stroke();
 
         for (let i = 0; i < 8; i++) {
             const isSel = (i === v3_activeSector);
-            const r = isSel ? V3_INNER + v3_pushProgress * (V3_OUTER - V3_INNER) : V3_INNER;
+            const r = isSel ? innerR + v3_pushProgress * (V3_OUTER - innerR) : innerR;
             const rad = (i * 45) * Math.PI / 180;
             const pos = { x: c.x + r * Math.cos(rad), y: c.y + r * Math.sin(rad) };
 
             if (i % 2 === 0) {
-                ctx.save();
-                ctx.translate(pos.x, pos.y);
-                ctx.rotate(rad);
-                ctx.beginPath(); ctx.moveTo(0, -14); ctx.lineTo(0, 14);
+                ctx.save(); ctx.translate(pos.x, pos.y); ctx.rotate(rad);
+                ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(0, 15);
                 ctx.strokeStyle = isSel ? '#2196F3' : '#444444';
-                ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.stroke();
+                ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.stroke();
                 ctx.restore();
             } else {
-                ctx.beginPath(); ctx.arc(pos.x, pos.y, 9, 0, Math.PI * 2);
+                ctx.beginPath(); ctx.arc(pos.x, pos.y, 10, 0, Math.PI * 2);
                 ctx.fillStyle = isSel ? '#2196F3' : '#444444'; ctx.fill();
             }
         }
@@ -576,28 +605,546 @@
             const contact = { x: c.x + V3_OUTER * Math.cos(rad), y: c.y + V3_OUTER * Math.sin(rad) };
             const letters = CHAR_MAP_V2_V3[i];
 
-            ctx.save();
-            ctx.translate(contact.x, contact.y);
-            ctx.rotate(rad);
+            ctx.save(); ctx.translate(contact.x, contact.y); ctx.rotate(rad);
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.font = 'bold 18px sans-serif';
-            ctx.fillStyle = '#111827';
-
-            ctx.fillText(letters[0], V3_MENU_OFFSET, 0);   // Out
-            ctx.fillText(letters[1], 0, V3_MENU_OFFSET);   // CW
-            ctx.fillText(letters[2], -V3_MENU_OFFSET, 0);  // In
-            ctx.fillText(letters[3], 0, -V3_MENU_OFFSET);  // CCW
+            ctx.font = 'bold 18px sans-serif'; ctx.fillStyle = '#111827';
+            ctx.fillText(letters[0], V3_MENU_OFFSET, 0);
+            ctx.fillText(letters[1], 0, V3_MENU_OFFSET);
+            ctx.fillText(letters[2], -V3_MENU_OFFSET, 0);
+            ctx.fillText(letters[3], 0, -V3_MENU_OFFSET);
             ctx.restore();
         }
     }
 
     // =========================================================================
-    // 🕹️ ENGINE 4: Latest 6-Zone Floating Chorded Keyboard
+    // 🕹️ ENGINE 5: v0.5 (Jan 7) — Sticky Zone Lock & Slide-to-Start
+    // =========================================================================
+    const V5_HOME = 15, V5_ACTIVATE = 80, V5_LOCK = 65;
+    function getV5DotPos(center, idx) {
+        const rad = (idx * 45) * Math.PI / 180;
+        return { x: center.x + V5_ACTIVATE * Math.cos(rad), y: center.y + V5_ACTIVATE * Math.sin(rad) };
+    }
+    function handleTouchV5(type, pt) {
+        if (type === 'end') { simple_dragPos = null; simple_activeZone = null; simple_isAlive = false; return; }
+        simple_dragPos = pt;
+        const distCenter = Math.hypot(pt.x - kbdCenter.x, pt.y - kbdCenter.y);
+        if (type === 'start') { simple_isAlive = (distCenter < V5_HOME); simple_activeZone = null; return; }
+        if (!simple_isAlive && distCenter < V5_HOME) { simple_isAlive = true; simple_activeZone = null; }
+        if (simple_isAlive) {
+            if (simple_activeZone === null) {
+                if (distCenter >= V5_ACTIVATE) {
+                    let deg = Math.atan2(pt.y - kbdCenter.y, pt.x - kbdCenter.x) * 180 / Math.PI;
+                    if (deg < 0) deg += 360;
+                    simple_activeZone = Math.floor((deg + 22.5) / 45) % 8;
+                }
+            } else {
+                const dotPos = getV5DotPos(kbdCenter, simple_activeZone);
+                if (Math.hypot(pt.x - dotPos.x, pt.y - dotPos.y) > V5_LOCK) {
+                    simple_isAlive = false; simple_activeZone = null;
+                }
+            }
+        }
+    }
+    function drawV5() {
+        const c = kbdCenter;
+        ctx.beginPath(); ctx.arc(c.x, c.y, V5_HOME, 0, Math.PI * 2);
+        ctx.strokeStyle = simple_isAlive ? '#00C853' : '#888888'; ctx.lineWidth = 3; ctx.stroke();
+        for (let i = 0; i < 8; i++) {
+            const dp = getV5DotPos(c, i);
+            if (i === simple_activeZone) {
+                ctx.beginPath(); ctx.arc(dp.x, dp.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFD600'; ctx.fill();
+                ctx.beginPath(); ctx.arc(dp.x, dp.y, V5_LOCK, 0, Math.PI * 2);
+                ctx.strokeStyle = '#FFD600'; ctx.lineWidth = 1.5; ctx.stroke();
+            } else {
+                ctx.beginPath(); ctx.arc(dp.x, dp.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#444444'; ctx.fill();
+            }
+        }
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 6: v0.6 & v0.7 (Feb 19-1 & Feb 19-2) — Draggable Thumb & 8 Arcs
+    // =========================================================================
+    const V6_HOME = 20, V6_OUTER = 55, V6_ACTIVATE = V6_OUTER - V6_HOME;
+    function handleTouchV6(type, pt) {
+        if (type === 'end') { simple_dragPos = null; simple_activeZone = null; simple_isAlive = false; return; }
+        simple_dragPos = pt;
+        const distCenter = Math.hypot(pt.x - kbdCenter.x, pt.y - kbdCenter.y);
+        if (type === 'start') { simple_isAlive = (distCenter < V6_HOME); simple_activeZone = null; return; }
+        if (!simple_isAlive && distCenter < V6_HOME) { simple_isAlive = true; simple_activeZone = null; }
+        if (simple_isAlive) {
+            let deg = Math.atan2(pt.y - kbdCenter.y, pt.x - kbdCenter.x) * 180 / Math.PI;
+            if (deg < 0) deg += 360;
+            const pointedZone = Math.floor((deg + 22.5) / 45) % 8;
+            simple_activeZone = (distCenter >= V6_ACTIVATE) ? pointedZone : null;
+        }
+    }
+    function drawV6(snapAxis) {
+        const c = kbdCenter;
+        for (let i = 0; i < 8; i++) {
+            const startRad = ((i * 45) - 22.5) * Math.PI / 180;
+            const endRad = startRad + (45 * Math.PI / 180);
+            const isAct = (i === simple_activeZone);
+            ctx.beginPath(); ctx.arc(c.x, c.y, V6_OUTER, startRad, endRad);
+            ctx.strokeStyle = isAct ? '#2196F3' : '#444444';
+            ctx.lineWidth = isAct ? 12 : 4; ctx.lineCap = 'butt'; ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(c.x, c.y, V6_HOME, 0, Math.PI * 2);
+        ctx.strokeStyle = '#CCCCCC'; ctx.lineWidth = 2; ctx.stroke();
+
+        let thumbPos = c;
+        if (simple_dragPos) {
+            if (snapAxis && simple_activeZone !== null) {
+                const snapRad = (simple_activeZone * 45) * Math.PI / 180;
+                const dist = Math.hypot(simple_dragPos.x - c.x, simple_dragPos.y - c.y);
+                thumbPos = { x: c.x + dist * Math.cos(snapRad), y: c.y + dist * Math.sin(snapRad) };
+            } else {
+                thumbPos = simple_dragPos;
+            }
+        }
+        ctx.beginPath(); ctx.arc(thumbPos.x, thumbPos.y, V6_HOME, 0, Math.PI * 2);
+        ctx.fillStyle = simple_isAlive ? '#00C853' : '#888888'; ctx.fill();
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 8: v0.8 (Apr 10) — Continuous Inward Swipe & Inner Spark
+    // =========================================================================
+    const V8_RADIUS = 40;
+    function handleTouchV8(type, pt) {
+        if (type === 'end') { v8_dragPos = null; v8_isArmed = false; return; }
+        v8_dragPos = pt;
+        const dist = Math.hypot(pt.x - kbdCenter.x, pt.y - kbdCenter.y);
+        if (type === 'start') { v8_isArmed = (dist > V8_RADIUS); return; }
+        if (dist > V8_RADIUS) {
+            if (!v8_isArmed) v8_isArmed = true;
+        } else if (v8_isArmed) {
+            let deg = Math.atan2(pt.y - kbdCenter.y, pt.x - kbdCenter.x) * 180 / Math.PI;
+            if (deg < 0) deg += 360;
+            const sector = Math.floor((deg + 22.5) / 45) % 8;
+            v8_sparkIndex = sector;
+            v8_sparkUntil = Date.now() + 150;
+            commitText(CHARS_AH[sector]);
+            v8_isArmed = false;
+        }
+    }
+    function drawV8() {
+        const c = kbdCenter;
+        ctx.beginPath(); ctx.arc(c.x, c.y, V8_RADIUS, 0, Math.PI * 2);
+        ctx.strokeStyle = '#888888'; ctx.lineWidth = 6; ctx.stroke();
+
+        if (v8_sparkIndex !== null && Date.now() < v8_sparkUntil) {
+            const sparkR = V8_RADIUS - 12;
+            const startRad = ((v8_sparkIndex * 45) - 22.5 + 10) * Math.PI / 180;
+            const endRad = startRad + (25 * Math.PI / 180);
+            ctx.beginPath(); ctx.arc(c.x, c.y, sparkR, startRad, endRad);
+            ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.stroke();
+        } else {
+            v8_sparkIndex = null;
+        }
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 9: v0.9 (Apr 20) — Gaussian Rubber Membrane
+    // =========================================================================
+    const V9_OUTER = 73, V9_INNER = 65, V9_TRIGGER = 35;
+    function handleTouchV9(type, pt) {
+        if (type === 'end') { v8_dragPos = null; v8_isArmed = false; return; }
+        v8_dragPos = pt;
+        const dist = Math.hypot(pt.x - kbdCenter.x, pt.y - kbdCenter.y);
+        if (type === 'start') { v8_isArmed = (dist > V9_OUTER); return; }
+        if (v8_isArmed) {
+            if (dist <= V9_TRIGGER) {
+                let deg = Math.atan2(pt.y - kbdCenter.y, pt.x - kbdCenter.x) * 180 / Math.PI;
+                if (deg < 0) deg += 360;
+                const sector = Math.floor((deg + 22.5) / 45) % 8;
+                v8_sparkIndex = sector;
+                v8_sparkUntil = Date.now() + 150;
+                commitText(CHARS_AH[sector]);
+                v8_isArmed = false;
+            }
+        } else {
+            if (dist > V9_OUTER) v8_isArmed = true;
+        }
+    }
+    function drawV9() {
+        const c = kbdCenter;
+        ctx.save();
+        ctx.beginPath(); ctx.arc(c.x, c.y, V9_OUTER, 0, Math.PI * 2);
+        ctx.setLineDash([20, 10]);
+        ctx.strokeStyle = v8_isArmed ? '#90CAF9' : '#CCCCCC';
+        ctx.lineWidth = 3; ctx.stroke();
+        ctx.restore();
+
+        ctx.beginPath(); ctx.arc(c.x, c.y, V9_TRIGGER - 5, 0, Math.PI * 2);
+        ctx.fillStyle = v8_isArmed ? '#444444' : '#CCCCCC'; ctx.fill();
+
+        let fingerDist = 0, fingerAngleRad = 0;
+        if (v8_isArmed && v8_dragPos) {
+            const dx = v8_dragPos.x - c.x, dy = v8_dragPos.y - c.y;
+            fingerDist = Math.hypot(dx, dy);
+            fingerAngleRad = Math.atan2(dy, dx);
+        }
+        const sigma = 0.4;
+        ctx.beginPath();
+        for (let i = 0; i <= 72; i++) {
+            const angleRad = (i * 2 * Math.PI) / 72;
+            let r = V9_INNER;
+            if (v8_isArmed && v8_dragPos && fingerDist < V9_INNER + 20) {
+                let angleDiff = Math.abs(angleRad - fingerAngleRad);
+                if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+                const pushAmp = Math.max(0, V9_INNER - (fingerDist - 15));
+                const deform = pushAmp * Math.exp(-(angleDiff * angleDiff) / (2 * sigma * sigma));
+                r -= deform;
+            }
+            const px = c.x + r * Math.cos(angleRad);
+            const py = c.y + r * Math.sin(angleRad);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = v8_isArmed ? '#2196F3' : '#888888';
+        ctx.lineWidth = 6; ctx.stroke();
+
+        if (v8_sparkIndex !== null && Date.now() < v8_sparkUntil) {
+            const sparkR = V9_INNER - 10;
+            const startRad = ((v8_sparkIndex * 45) - 22.5 + 2) * Math.PI / 180;
+            const endRad = startRad + (41 * Math.PI / 180);
+            ctx.beginPath(); ctx.arc(c.x, c.y, sparkR, startRad, endRad);
+            ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.stroke();
+        } else {
+            v8_sparkIndex = null;
+        }
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 10: v0.10 (May 20-1) — Mathy Cosine Pull Vector
+    // =========================================================================
+    const V10_MAIN = 80, V10_TRIG = 60;
+    function handleTouchV10(type, pt) {
+        if (type === 'end') {
+            v10_dragPos = null; v10_activeArc = null; v10_contactPt = null; v10_swipeState = 0; v10_pullProgress = 0;
+            return;
+        }
+        v10_dragPos = pt;
+        const dist = Math.hypot(pt.x - kbdCenter.x, pt.y - kbdCenter.y);
+        if (type === 'start') {
+            v10_swipeState = (dist > V10_MAIN) ? 0 : 2;
+            return;
+        }
+        if (dist > V10_MAIN) {
+            v10_swipeState = 0; v10_activeArc = null; v10_contactPt = null; v10_pullProgress = 0;
+        } else {
+            if (v10_swipeState === 0) {
+                let deg = Math.atan2(pt.y - kbdCenter.y, pt.x - kbdCenter.x) * 180 / Math.PI;
+                if (deg < 0) deg += 360;
+                v10_activeArc = Math.floor((deg + 22.5) / 45) % 8;
+                const arcRad = (v10_activeArc * 45) * Math.PI / 180;
+                v10_contactPt = {
+                    x: kbdCenter.x + V10_MAIN * Math.cos(arcRad),
+                    y: kbdCenter.y + V10_MAIN * Math.sin(arcRad)
+                };
+                v10_swipeState = 1;
+            }
+            if (v10_swipeState === 1 && v10_contactPt) {
+                const distFromContact = Math.hypot(pt.x - v10_contactPt.x, pt.y - v10_contactPt.y);
+                v10_pullProgress = Math.max(0, Math.min(1, distFromContact / V10_TRIG));
+                if (distFromContact > V10_TRIG) {
+                    commitText(CHARS_AH[v10_activeArc]);
+                    v10_swipeState = 2;
+                    v10_pullProgress = 0;
+                }
+            }
+        }
+    }
+    function drawV10() {
+        const c = kbdCenter;
+        const activeAngle = (v10_activeArc !== null) ? v10_activeArc * 45 : 0;
+        ctx.beginPath();
+        for (let i = 0; i <= 72; i++) {
+            const theta = i * 5;
+            const rad = theta * Math.PI / 180;
+            let fx = c.x + V10_MAIN * Math.cos(rad);
+            let fy = c.y + V10_MAIN * Math.sin(rad);
+
+            if (v10_swipeState === 1 && v10_activeArc !== null && v10_dragPos && v10_contactPt) {
+                let diff = Math.abs(theta - activeAngle);
+                if (diff > 180) diff = 360 - diff;
+                const spread = 60;
+                if (diff < spread) {
+                    const factor = Math.cos((diff / spread * 90) * Math.PI / 180);
+                    fx += (v10_dragPos.x - v10_contactPt.x) * factor;
+                    fy += (v10_dragPos.y - v10_contactPt.y) * factor;
+                }
+            }
+            if (i === 0) ctx.moveTo(fx, fy); else ctx.lineTo(fx, fy);
+        }
+        ctx.closePath();
+        ctx.strokeStyle = (v10_swipeState === 0) ? '#2196F3' : (v10_swipeState === 1 ? '#FF9800' : '#888888');
+        ctx.lineWidth = (v10_swipeState === 1) ? (4 + 6 * v10_pullProgress) : 4;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 11 & 12: v0.11 (72-Pt Jelly) & v0.12 (June Cubic Bezier Jelly)
+    // =========================================================================
+    function handleTouchJelly(type, pt, mainR, trigDepth) {
+        if (type === 'end') {
+            if (v11_swipeState === 1) v11_springActive = true;
+            v11_swipeState = 0; v11_activeArc = null;
+            return;
+        }
+        const dx = pt.x - kbdCenter.x, dy = pt.y - kbdCenter.y;
+        const dist = Math.hypot(dx, dy);
+        let deg = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (deg < 0) deg += 360;
+
+        if (dist > mainR) {
+            v11_swipeState = 0; v11_activeArc = null; v11_springActive = true;
+        } else {
+            if (v11_swipeState === 0) {
+                v11_swipeState = 1;
+                v11_pushAngle = deg;
+                v11_activeArc = Math.floor((deg + 22.5) / 45) % 8;
+            }
+            if (v11_swipeState === 1) {
+                v11_pushAngle = deg;
+                const depth = mainR - dist;
+                v11_springActive = false;
+                v11_pushDepth = depth;
+                v11_pushVel = 0;
+
+                if (depth > trigDepth) {
+                    const index = Math.floor((deg + 22.5) / 45) % 8;
+                    commitText(CHARS_AH[index]);
+                    v11_sparkIndex = index;
+                    v11_sparkUntil = Date.now() + 150;
+                    v11_swipeState = 2;
+                    v11_activeArc = null;
+                    v11_springActive = true;
+                }
+            }
+        }
+    }
+
+    function stepSpringV11() {
+        if (v11_springActive) {
+            const force = -0.18 * v11_pushDepth;
+            v11_pushVel = (v11_pushVel + force) * 0.82;
+            v11_pushDepth += v11_pushVel;
+            if (Math.abs(v11_pushDepth) < 0.1 && Math.abs(v11_pushVel) < 0.1) {
+                v11_pushDepth = 0; v11_pushVel = 0; v11_springActive = false;
+            }
+        }
+    }
+
+    function drawV11() {
+        stepSpringV11();
+        const V11_MAIN = 70;
+        const c = kbdCenter;
+        ctx.beginPath();
+        for (let i = 0; i <= 72; i++) {
+            const theta = i * 5;
+            let r = V11_MAIN;
+            if (Math.abs(v11_pushDepth) > 0.1) {
+                let diff = Math.abs(theta - v11_pushAngle);
+                if (diff > 180) diff = 360 - diff;
+                const squish = (diff < 90) ? v11_pushDepth * Math.cos(diff * Math.PI / 180) : 0;
+                const bulge = (diff < 180) ? (v11_pushDepth * 0.45) * Math.sin(diff * Math.PI / 180) : 0;
+                r = V11_MAIN - squish + bulge;
+            }
+            const rad = theta * Math.PI / 180;
+            const px = c.x + r * Math.cos(rad);
+            const py = c.y + r * Math.sin(rad);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+
+        const isSparking = (v11_sparkIndex !== null && Date.now() < v11_sparkUntil);
+        if (!isSparking) v11_sparkIndex = null;
+
+        ctx.strokeStyle = isSparking ? '#4CAF50' : (v11_swipeState === 1 ? '#FF9800' : '#2196F3');
+        ctx.lineWidth = 6; ctx.lineCap = 'round';
+        ctx.stroke();
+    }
+
+    // v0.12 (June) — 4-Anchor Cubic Bezier Jelly Circle
+    function drawV12Bezier() {
+        stepSpringV11();
+        const mainRadius = 100;
+        const magic = 0.55228;
+        const baseMagic = mainRadius * magic;
+
+        const squish = v11_pushDepth;
+        const bulge = v11_pushDepth * 0.45;
+
+        const top = { x: 0, y: -mainRadius + squish };
+        const bottom = { x: 0, y: mainRadius };
+        const left = { x: -mainRadius - bulge, y: 0 };
+        const right = { x: mainRadius + bulge, y: 0 };
+
+        const topC = baseMagic - (squish * magic);
+        const sideC = baseMagic + (bulge * magic);
+        const botC = baseMagic;
+
+        const isSparking = (v11_sparkIndex !== null && Date.now() < v11_sparkUntil);
+        if (!isSparking) v11_sparkIndex = null;
+
+        ctx.save();
+        ctx.translate(kbdCenter.x, kbdCenter.y);
+        ctx.rotate((v11_pushAngle + 90) * Math.PI / 180);
+
+        ctx.beginPath();
+        ctx.moveTo(top.x, top.y);
+        ctx.bezierCurveTo(top.x + topC, top.y, right.x, right.y - sideC, right.x, right.y);
+        ctx.bezierCurveTo(right.x, right.y + sideC, bottom.x + botC, bottom.y, bottom.x, bottom.y);
+        ctx.bezierCurveTo(bottom.x - botC, bottom.y, left.x, left.y + sideC, left.x, left.y);
+        ctx.bezierCurveTo(left.x, left.y - sideC, top.x - topC, top.y, top.x, top.y);
+        ctx.closePath();
+
+        ctx.strokeStyle = isSparking ? '#4CAF50' : (v11_swipeState === 1 ? '#FF9800' : '#2196F3');
+        ctx.lineWidth = 6; ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 13 & 14: Jun 22 (v.02) & Jul 2 (v.03) — Ring Trigger & Sliding Dot
+    // =========================================================================
+    const V13_MAIN = 84, V13_INNER = 60, V13_MID = 72;
+    const V13_AIM = 13, V13_TRIG = 32, V13_DOT_SIZE = 8;
+
+    function handleTouchV13(type, pt) {
+        if (type === 'end') {
+            v13_activeCharIndex = null; v13_dotProgress = 0;
+            return;
+        }
+        const c = kbdCenter;
+        const distToCenter = Math.hypot(pt.x - c.x, pt.y - c.y);
+
+        const textRadius = V13_MAIN + (currentVersion.textOffset || 40);
+        const dotStartRadius = V13_MAIN + (currentVersion.dotStartOffset || 20);
+        const dotEndRadius = V13_MAIN + (currentVersion.dotEndOffset || 0);
+
+        if (v13_activeCharIndex === null) {
+            if (distToCenter >= V13_INNER && distToCenter <= V13_MAIN) {
+                for (let i = 0; i < 8; i++) {
+                    const angleRad = (i * 45) * Math.PI / 180;
+                    const aimX = c.x + Math.cos(angleRad) * V13_MID;
+                    const aimY = c.y + Math.sin(angleRad) * V13_MID;
+                    if (Math.hypot(pt.x - aimX, pt.y - aimY) <= V13_AIM) {
+                        v13_activeCharIndex = i;
+                        break;
+                    }
+                }
+            }
+        } else {
+            const angleRad = (v13_activeCharIndex * 45) * Math.PI / 180;
+            const aimX = c.x + Math.cos(angleRad) * V13_MID;
+            const aimY = c.y + Math.sin(angleRad) * V13_MID;
+            const distToAimPoint = Math.hypot(pt.x - aimX, pt.y - aimY);
+
+            if (distToCenter <= V13_INNER) {
+                v13_dotProgress = Math.max(0, Math.min(1, (distToAimPoint - V13_AIM) / (V13_TRIG - V13_AIM)));
+            } else {
+                v13_dotProgress = 0;
+            }
+
+            if (distToAimPoint > V13_TRIG) {
+                if (distToCenter <= V13_INNER) {
+                    const idx = v13_activeCharIndex;
+                    const ch = CHARS_AH[idx];
+                    commitText(ch);
+                    v13_sparkIndex = idx;
+                    v13_sparkUntil = Date.now() + 150;
+
+                    const curDotR = dotStartRadius - v13_dotProgress * (dotStartRadius - dotEndRadius);
+                    v13_ghosts.push({
+                        text: ch,
+                        angleRad: angleRad,
+                        textRadius: textRadius,
+                        dotRadius: curDotR,
+                        startTime: Date.now()
+                    });
+
+                    v13_activeCharIndex = null;
+                    v13_dotProgress = 0;
+                } else {
+                    v13_activeCharIndex = null;
+                    v13_dotProgress = 0;
+                }
+            } else if (distToCenter > V13_MAIN) {
+                v13_activeCharIndex = null;
+                v13_dotProgress = 0;
+            }
+        }
+    }
+
+    function drawV13() {
+        const c = kbdCenter;
+        const now = Date.now();
+        const textRadius = V13_MAIN + (currentVersion.textOffset || 40);
+        const dotStartRadius = V13_MAIN + (currentVersion.dotStartOffset || 20);
+        const dotEndRadius = V13_MAIN + (currentVersion.dotEndOffset || 0);
+
+        // Debug green grab circles
+        for (let i = 0; i < 8; i++) {
+            const rad = (i * 45) * Math.PI / 180;
+            ctx.beginPath();
+            ctx.arc(c.x + Math.cos(rad) * V13_MID, c.y + Math.sin(rad) * V13_MID, V13_AIM, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 200, 83, 0.2)';
+            ctx.fill();
+        }
+
+        const isSparking = (v13_sparkIndex !== null && now < v13_sparkUntil);
+        if (!isSparking) v13_sparkIndex = null;
+
+        // Outer Ring
+        ctx.beginPath(); ctx.arc(c.x, c.y, V13_MAIN, 0, Math.PI * 2);
+        ctx.strokeStyle = isSparking ? '#4CAF50' : '#2196F3';
+        ctx.lineWidth = 6; ctx.stroke();
+
+        // Inner Ring
+        ctx.beginPath(); ctx.arc(c.x, c.y, V13_INNER, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+        ctx.lineWidth = 3; ctx.stroke();
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 42px sans-serif';
+
+        // 1. Active Aiming
+        if (v13_activeCharIndex !== null) {
+            const idx = v13_activeCharIndex;
+            const lockedRad = (idx * 45) * Math.PI / 180;
+            ctx.fillStyle = '#000000';
+            ctx.fillText(CHARS_AH[idx], c.x + Math.cos(lockedRad) * textRadius, c.y + Math.sin(lockedRad) * textRadius);
+
+            const curDotR = dotStartRadius - v13_dotProgress * (dotStartRadius - dotEndRadius);
+            ctx.beginPath();
+            ctx.arc(c.x + Math.cos(lockedRad) * curDotR, c.y + Math.sin(lockedRad) * curDotR, V13_DOT_SIZE, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // 2. Fired Ghosts (300ms fade)
+        v13_ghosts = v13_ghosts.filter(g => {
+            const age = now - g.startTime;
+            if (age > 300) return false;
+            const alpha = 1 - (age / 300);
+            ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+            ctx.fillText(g.text, c.x + Math.cos(g.angleRad) * g.textRadius, c.y + Math.sin(g.angleRad) * g.textRadius);
+
+            ctx.beginPath();
+            ctx.arc(c.x + Math.cos(g.angleRad) * g.dotRadius, c.y + Math.sin(g.angleRad) * g.dotRadius, V13_DOT_SIZE, 0, Math.PI * 2);
+            ctx.fill();
+            return true;
+        });
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 15: Latest 6-Zone Floating Chorded Keyboard
     // =========================================================================
     const L_INNER = 60, L_MAIN = 73, L_TEXT = 86, L_OUTER = 99;
     const L_STEP = 60, L_GAP = 18, L_SWEEP = 42;
     function getLatestZone(idx) { return ((idx + 2) % 6) + 1; }
-
     function getLatestHitIndex(x, y) {
         const dx = x - kbdCenter.x, dy = y - kbdCenter.y;
         const dist = Math.hypot(dx, dy);
@@ -610,7 +1157,6 @@
         if (diff > 180) diff = 360 - diff;
         return (diff <= L_SWEEP / 2) ? closest : null;
     }
-
     function handleTouchLatest(e) {
         let activeTouch = null;
         if (activeTouchId !== null) {
@@ -658,7 +1204,6 @@
             activeCharIndex = null;
         }
     }
-
     function drawLatest() {
         const cx = kbdCenter.x, cy = kbdCenter.y, now = Date.now();
         for (let i = 0; i < 6; i++) {
@@ -727,20 +1272,36 @@
     }
 
     function routeTouch(type, e) {
-        if (currentVersion.engine === "chord6_latest") {
-            handleTouchLatest(e);
-            return;
-        }
+        const eng = currentVersion.engine;
+        if (eng === "chord6_latest") { handleTouchLatest(e); return; }
+
         if (e.touches.length === 0) {
-            if (currentVersion.engine === "grid_v1") handleTouchV1('end', null);
-            if (currentVersion.engine === "dots_v2") handleTouchV2('end', null);
-            if (currentVersion.engine === "push_v3") handleTouchV3('end', null);
+            if (eng === "grid_v1") handleTouchV1('end', null);
+            else if (eng === "dots_v2") handleTouchV2('end', null);
+            else if (eng === "push_v3" || eng === "push_v4_lowlevel") handleTouchV3V4('end', null, false);
+            else if (eng === "sticky_dot_v5") handleTouchV5('end', null);
+            else if (eng === "thumb_arc_v6") handleTouchV6('end', null);
+            else if (eng === "inward_spark_v8") handleTouchV8('end', null);
+            else if (eng === "gaussian_membrane_v9") handleTouchV9('end', null);
+            else if (eng === "mathy_pull_v10") handleTouchV10('end', null);
+            else if (eng === "jelly_spring_v11") handleTouchJelly('end', null, 70, 40);
+            else if (eng === "bezier_v12") handleTouchJelly('end', null, 100, 50);
+            else if (eng === "ring_trigger_v13_14") handleTouchV13('end', null);
             return;
         }
         const pt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        if (currentVersion.engine === "grid_v1") handleTouchV1(type, pt);
-        if (currentVersion.engine === "dots_v2") handleTouchV2(type, pt);
-        if (currentVersion.engine === "push_v3") handleTouchV3(type, pt);
+        if (eng === "grid_v1") handleTouchV1(type, pt);
+        else if (eng === "dots_v2") handleTouchV2(type, pt);
+        else if (eng === "push_v3") handleTouchV3V4(type, pt, false);
+        else if (eng === "push_v4_lowlevel") handleTouchV3V4(type, pt, true);
+        else if (eng === "sticky_dot_v5") handleTouchV5(type, pt);
+        else if (eng === "thumb_arc_v6") handleTouchV6(type, pt);
+        else if (eng === "inward_spark_v8") handleTouchV8(type, pt);
+        else if (eng === "gaussian_membrane_v9") handleTouchV9(type, pt);
+        else if (eng === "mathy_pull_v10") handleTouchV10(type, pt);
+        else if (eng === "jelly_spring_v11") handleTouchJelly(type, pt, 70, 40);
+        else if (eng === "bezier_v12") handleTouchJelly(type, pt, 100, 50);
+        else if (eng === "ring_trigger_v13_14") handleTouchV13(type, pt);
     }
 
     document.addEventListener('touchstart', e => { if (!isUITouch(e)) { e.preventDefault(); routeTouch('start', e); } }, {passive: false});
@@ -753,10 +1314,19 @@
 
     function renderLoop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (currentVersion.engine === "grid_v1") drawV1();
-        else if (currentVersion.engine === "dots_v2") drawV2();
-        else if (currentVersion.engine === "push_v3") drawV3();
-        else if (currentVersion.engine === "chord6_latest") drawLatest();
+        const eng = currentVersion.engine;
+        if (eng === "grid_v1") drawV1();
+        else if (eng === "dots_v2") drawV2();
+        else if (eng === "push_v3" || eng === "push_v4_lowlevel") drawV3V4();
+        else if (eng === "sticky_dot_v5") drawV5();
+        else if (eng === "thumb_arc_v6") drawV6(currentVersion.snapAxis);
+        else if (eng === "inward_spark_v8") drawV8();
+        else if (eng === "gaussian_membrane_v9") drawV9();
+        else if (eng === "mathy_pull_v10") drawV10();
+        else if (eng === "jelly_spring_v11") drawV11();
+        else if (eng === "bezier_v12") drawV12Bezier();
+        else if (eng === "ring_trigger_v13_14") drawV13();
+        else if (eng === "chord6_latest") drawLatest();
         requestAnimationFrame(renderLoop);
     }
     requestAnimationFrame(renderLoop);
