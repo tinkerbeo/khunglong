@@ -17,67 +17,114 @@
             -webkit-touch-callout: none;
         }
 
-        /* 🎛️ TOP SWITCHER BAR */
-        .ui-panel {
+        /* 🗂️ LEFT COLUMN SIDEBAR (Latest -> Oldest) */
+        #sidebar {
             position: absolute;
-            top: 10px; left: 10px; right: 10px;
+            top: 10px; bottom: 10px; left: 10px;
+            width: clamp(105px, 26vw, 165px);
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            border-radius: 16px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             z-index: 50;
             pointer-events: auto;
         }
-        .top-bar {
-            display: flex; align-items: center; gap: 8px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(8px);
-            padding: 8px 10px;
-            border-radius: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+
+        .sidebar-actions {
+            display: flex;
+            gap: 6px;
         }
-        .version-pills {
-            display: flex; gap: 6px;
-            overflow-x: auto; flex: 1;
-            scrollbar-width: none;
-        }
-        .version-pills::-webkit-scrollbar { display: none; }
-        .pill {
-            border: 1px solid #D1D5DB;
-            background: #F9FAFB; color: #374151;
-            padding: 6px 12px; border-radius: 999px;
-            font-size: 13px; font-weight: 700;
-            white-space: nowrap; cursor: pointer;
-        }
-        .pill.active {
-            background: #2196F3; color: white; border-color: #2196F3;
-        }
+
         .action-btn {
-            border: none; background: #F3F4F6; color: #111827;
-            padding: 6px 10px; border-radius: 10px;
-            font-size: 13px; font-weight: 600; cursor: pointer;
+            flex: 1;
+            border: none;
+            background: #F3F4F6;
+            color: #111827;
+            padding: 8px 4px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
         }
         .action-btn.active { background: #111827; color: white; }
 
+        .version-pills {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow-y: auto;
+            flex: 1;
+            touch-action: pan-y; /* Allows smooth vertical scrolling on mobile */
+            scrollbar-width: none;
+            padding-bottom: 8px;
+        }
+        .version-pills::-webkit-scrollbar { display: none; }
+
+        .pill {
+            border: 1px solid #D1D5DB;
+            background: #F9FAFB;
+            color: #374151;
+            padding: 9px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: left;
+            cursor: pointer;
+            flex-shrink: 0;
+            touch-action: pan-y;
+        }
+        .pill.active {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+
+        /* 📝 RIGHT PANE: LOCKED TEXT EDITOR */
+        #editor {
+            position: absolute;
+            top: 10px;
+            bottom: 10px;
+            left: calc(clamp(105px, 26vw, 165px) + 20px);
+            right: 10px;
+            background: white;
+            border-radius: 16px;
+            padding: 115px 20px 24px 108px;
+            font-size: 22px;
+            line-height: 1.4;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            overflow-y: hidden;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* 💡 NOTES DRAWER OVERLAY (Top of Right Pane) */
         #notesDrawer {
-            margin-top: 8px;
-            background: rgba(255, 255, 255, 0.97);
-            border-radius: 14px; padding: 14px;
+            position: absolute;
+            top: 20px;
+            left: calc(clamp(105px, 26vw, 165px) + 30px);
+            right: 20px;
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid #E5E7EB;
+            border-radius: 14px;
+            padding: 14px;
             box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-            font-size: 13px; line-height: 1.45; color: #374151;
+            font-size: 13px;
+            line-height: 1.45;
+            color: #374151;
             display: none;
+            z-index: 45;
+            pointer-events: auto;
         }
         #notesDrawer.open { display: block; }
         #notesDrawer h3 { font-size: 15px; color: #111827; margin-bottom: 4px; }
 
-        /* 📝 LOCKED TEXT EDITOR */
-        #editor {
-            position: absolute;
-            top: 64px; left: 10px; right: 10px; bottom: 10px;
-            background: white; border-radius: 16px;
-            padding: 120px 24px 24px 120px;
-            font-size: 22px; line-height: 1.4;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            overflow-y: hidden;
-            white-space: pre-wrap; word-wrap: break-word;
-            pointer-events: none; z-index: 1;
-        }
         #caret {
             display: inline-block; width: 2.5px; height: 24px;
             background-color: #2196F3; vertical-align: text-bottom;
@@ -104,121 +151,50 @@
 </head>
 <body>
 
-    <div class="ui-panel">
-        <div class="top-bar">
-            <div class="version-pills" id="pillContainer"></div>
+    <!-- 🗂️ LEFT COLUMN: VERSION LIST (LATEST -> OLDEST) -->
+    <aside id="sidebar" class="ui-panel">
+        <div class="sidebar-actions">
             <button class="action-btn" id="btnToggleNotes">💡 Info</button>
             <button class="action-btn" id="btnClear">🗑️</button>
         </div>
-        <div id="notesDrawer"></div>
-    </div>
+        <div class="version-pills" id="pillContainer"></div>
+    </aside>
 
+    <!-- 💡 COLLAPSIBLE DESIGN NOTES -->
+    <div id="notesDrawer" class="ui-panel"></div>
+
+    <!-- 📝 RIGHT COLUMN: TEXT EDITOR -->
     <div id="editor"><span id="textContent"></span><span id="caret"></span></div>
+
+    <!-- 🎯 KEYBOARD OVERLAY CANVAS -->
     <canvas id="kbCanvas"></canvas>
 
     <div class="btn" id="btnSpace">␣</div>
     <div class="btn" id="btnBackspace">⌫</div>
 
 <script>
-    // 📚 CHRONOLOGICAL VERSION ARCHIVE (Batches 1–4)
+    // 📚 REVERSE CHRONOLOGICAL ARCHIVE (Latest -> Oldest)
     const VERSIONS = [
         {
-            id: "v0.1",
-            label: "v0.1 • Dec 24",
-            title: "v0.1 (Dec 24) — 3×3 Nested Square Grid",
-            notes: "Start drag inside the center square ('Home Base'). Drag into any of the 8 surrounding squares to spawn 8 orange sub-squares around it. Enter a sub-square to fire!",
-            engine: "grid_v1"
+            id: "latest",
+            label: "Latest • 6-Zone",
+            title: "Latest — Floating 6-Zone Rotated Chorded Keyboard",
+            notes: "6 separated keys (#1 at 8 o'clock), floating on the text cursor with palm rejection and cursor ripple sparks.",
+            engine: "chord6_latest"
         },
         {
-            id: "v0.2",
-            label: "v0.2 • Dec 25",
-            title: "v0.2 (Dec 25) — Circle + 8 Perimeter Dots",
-            notes: "Enter the center circle to turn it Blue (Ready). Drag onto any of the 8 perimeter dots to open a 4-key directional cross (Up, Right, Down, Left), then drag past threshold to type.",
-            engine: "dots_v2"
+            id: "v0.16",
+            label: "v0.16 • Jul 17",
+            title: "v0.16 (Jul 17) — Rhombus 8-Node × 4-Char Sub-Menu",
+            notes: "8 anchor dots arranged in a Rhombus (135px cardinals, 90px diagonals). Touching a dot opens 4 directional 90° arcs (E, S, W, N). Drag past 35px to fire letters, punctuation, or Space/Delete/Enter and immediately chain to the next dot!",
+            engine: "rhombus_marking_v16"
         },
         {
-            id: "v0.3",
-            label: "v0.3 • Dec 26",
-            title: "v0.3 (Dec 26) — Push Triggers (Bars & Dots)",
-            notes: "Alternating Bars (E/S/W/N) and Dots (diagonals) sit at 70px inside the 80px wall. Push a trigger outward to the wall to pop open 4 rotated local letters (Out, CW, In, CCW).",
-            engine: "push_v3",
-            innerR: 70
-        },
-        {
-            id: "v0.4",
-            label: "v0.4 • Jan 6",
-            title: "v0.4 (Jan 6) — Low-Level Push Triggers (Hard Stop)",
-            notes: "Switched from high-level drag gestures to raw pointer event loops. Widened push travel (60px to 80px) and strictly terminates the touch session after firing 1 character (must lift finger).",
-            engine: "push_v4_lowlevel",
-            innerR: 60
-        },
-        {
-            id: "v0.5",
-            label: "v0.5 • Jan 7",
-            title: "v0.5 (Jan 7) — Slide-to-Start & Sticky Zone Lock (Visual)",
-            notes: "Visual mechanics testbed (no text output). Slide into the small 15px center ring to turn it Green. Drag out to 80px to lock onto a Yellow zone dot (with a 65px sticky boundary ring). Leaving the 65px ring breaks the lock!",
-            engine: "sticky_dot_v5"
-        },
-        {
-            id: "v0.6",
-            label: "v0.6 • Feb 19 (1)",
-            title: "v0.6 (Feb 19-1) — Draggable Thumb & 8-Arc Ring (Free)",
-            notes: "Visual mechanics testbed. Drag the 20px center thumb circle (turns Green when active) toward the 55px 8-slice outer ring. Touching the ring (dist >= 35px) highlights the active arc in thick Blue.",
-            engine: "thumb_arc_v6",
-            snapAxis: false
-        },
-        {
-            id: "v0.7",
-            label: "v0.7 • Feb 19 (2)",
-            title: "v0.7 (Feb 19-2) — Limited Axis / Snapped Rail Thumb",
-            notes: "Visual mechanics testbed. Identical to Feb 19-1, except once the thumb reaches the outer ring, the Green thumb visually snaps onto the strict 45° radial rail of the active zone!",
-            engine: "thumb_arc_v6",
-            snapAxis: true
-        },
-        {
-            id: "v0.8",
-            label: "v0.8 • Apr 10",
-            title: "v0.8 (Apr 10) — Continuous Inward Swipe & Spark",
-            notes: "First outside-in prototype! Start or exit outside the 40px gray circle to arm. Swipe inward across the boundary to immediately fire A–H and flash a 150ms bright orange inner arc.",
-            engine: "inward_spark_v8"
-        },
-        {
-            id: "v0.9",
-            label: "v0.9 • Apr 20",
-            title: "v0.9 (Apr 20) — Gaussian Rubber Membrane",
-            notes: "Exit the 73px dashed outer ring to arm. Push inward against the 65px blue rubber membrane (deforms via a 72-point Gaussian bell curve) until touching the 35px inner core to snap & fire A–H!",
-            engine: "gaussian_membrane_v9"
-        },
-        {
-            id: "v0.10",
-            label: "v0.10 • May 20 (1)",
-            title: "v0.10 (May 20-1) — Mathy Cosine Pull Vector",
-            notes: "Enter the 80px ring from outside to lock onto an entry contact point (turns Orange). Pull 60px away from that contact point—stretching a 60° cosine curve and thickening the stroke—to fire A–H.",
-            engine: "mathy_pull_v10"
-        },
-        {
-            id: "v0.11",
-            label: "v0.11 • May 20 (2)",
-            title: "v0.11 (May 20-2) — Volume-Preserving Jelly & Spring",
-            notes: "Push inward on the 70px ring: squishes inward at the finger (<90°) while bulging outward on the sides (<180°) to preserve volume! Push 40px deep to fire A–H (flashes Green) and spring-bounce back.",
-            engine: "jelly_spring_v11"
-        },
-        {
-            id: "v0.12",
-            label: "v0.12 • June",
-            title: "v0.12 (June) — Cubic Bezier Jelly Circle",
-            notes: "Replaces the 72-point trig loop with 4 Cubic Bezier curves (magic = 0.55228) rotated dynamically to face the finger! Push 50px deep into the 100px ring to fire A–H and trigger a bouncy spring snap.",
-            engine: "bezier_v12"
-        },
-        {
-            id: "v0.13",
-            label: "v0.13 • Jun 22",
-            title: "v0.13 (Jun 22) — Ring Trigger & Sliding Dot (v.02)",
-            notes: "Grab one of the 8 green 13px aim zones between the 84px outer and 60px inner rings. Pull inward past the inner ring: a black dot slides from +20px to the ring edge and fires with a 300ms fading Ghost!",
-            engine: "ring_trigger_v13_14",
-            textOffset: 40,
-            dotStartOffset: 20,
-            dotEndOffset: 0
+            id: "v0.15",
+            label: "v0.15 • Jul 10",
+            title: "v0.15 (Jul 10) — 8-Zone Inflating Bulge Chords",
+            notes: "8 slices (1–7 for a–z combos, 8 at South for Space) between 80px and 120px rings (70px fire ring). Anchoring a slice turns it Green and inflates its outer radius by +20px! Re-firing the anchored slice cancels (Orange 🔙).",
+            engine: "bulge_chord8_v15"
         },
         {
             id: "v0.14",
@@ -231,11 +207,102 @@
             dotEndOffset: 17
         },
         {
-            id: "latest",
-            label: "Latest • 6-Zone",
-            title: "Latest — Floating 6-Zone Rotated Chorded Keyboard",
-            notes: "6 separated keys (#1 at 8 o'clock), floating on the text cursor with palm rejection and cursor ripple sparks.",
-            engine: "chord6_latest"
+            id: "v0.13",
+            label: "v0.13 • Jun 22",
+            title: "v0.13 (Jun 22) — Ring Trigger & Sliding Dot (v.02)",
+            notes: "Grab one of the 8 green 13px aim zones between the 84px outer and 60px inner rings. Pull inward past the inner ring: a black dot slides from +20px to the ring edge and fires with a 300ms fading Ghost!",
+            engine: "ring_trigger_v13_14",
+            textOffset: 40,
+            dotStartOffset: 20,
+            dotEndOffset: 0
+        },
+        {
+            id: "v0.12",
+            label: "v0.12 • June",
+            title: "v0.12 (June) — Cubic Bezier Jelly Circle",
+            notes: "Replaces the 72-point trig loop with 4 Cubic Bezier curves (magic = 0.55228) rotated dynamically to face the finger! Push 50px deep into the 100px ring to fire A–H and trigger a bouncy spring snap.",
+            engine: "bezier_v12"
+        },
+        {
+            id: "v0.11",
+            label: "v0.11 • May 20 (2)",
+            title: "v0.11 (May 20-2) — Volume-Preserving Jelly & Spring",
+            notes: "Push inward on the 70px ring: squishes inward at the finger (<90°) while bulging outward on the sides (<180°) to preserve volume! Push 40px deep to fire A–H (flashes Green) and spring-bounce back.",
+            engine: "jelly_spring_v11"
+        },
+        {
+            id: "v0.10",
+            label: "v0.10 • May 20 (1)",
+            title: "v0.10 (May 20-1) — Mathy Cosine Pull Vector",
+            notes: "Enter the 80px ring from outside to lock onto an entry contact point (turns Orange). Pull 60px away from that contact point—stretching a 60° cosine curve and thickening the stroke—to fire A–H.",
+            engine: "mathy_pull_v10"
+        },
+        {
+            id: "v0.9",
+            label: "v0.9 • Apr 20",
+            title: "v0.9 (Apr 20) — Gaussian Rubber Membrane",
+            notes: "Exit the 73px dashed outer ring to arm. Push inward against the 65px blue rubber membrane (deforms via a 72-point Gaussian bell curve) until touching the 35px inner core to snap & fire A–H!",
+            engine: "gaussian_membrane_v9"
+        },
+        {
+            id: "v0.8",
+            label: "v0.8 • Apr 10",
+            title: "v0.8 (Apr 10) — Continuous Inward Swipe & Spark",
+            notes: "First outside-in prototype! Start or exit outside the 40px gray circle to arm. Swipe inward across the boundary to immediately fire A–H and flash a 150ms bright orange inner arc.",
+            engine: "inward_spark_v8"
+        },
+        {
+            id: "v0.7",
+            label: "v0.7 • Feb 19 (2)",
+            title: "v0.7 (Feb 19-2) — Limited Axis / Snapped Rail Thumb",
+            notes: "Visual mechanics testbed. Identical to Feb 19-1, except once the thumb reaches the outer ring, the Green thumb visually snaps onto the strict 45° radial rail of the active zone!",
+            engine: "thumb_arc_v6",
+            snapAxis: true
+        },
+        {
+            id: "v0.6",
+            label: "v0.6 • Feb 19 (1)",
+            title: "v0.6 (Feb 19-1) — Draggable Thumb & 8-Arc Ring (Free)",
+            notes: "Visual mechanics testbed. Drag the 20px center thumb circle (turns Green when active) toward the 55px 8-slice outer ring. Touching the ring (dist >= 35px) highlights the active arc in thick Blue.",
+            engine: "thumb_arc_v6",
+            snapAxis: false
+        },
+        {
+            id: "v0.5",
+            label: "v0.5 • Jan 7",
+            title: "v0.5 (Jan 7) — Slide-to-Start & Sticky Zone Lock (Visual)",
+            notes: "Visual mechanics testbed (no text output). Slide into the small 15px center ring to turn it Green. Drag out to 80px to lock onto a Yellow zone dot (with a 65px sticky boundary ring). Leaving the 65px ring breaks the lock!",
+            engine: "sticky_dot_v5"
+        },
+        {
+            id: "v0.4",
+            label: "v0.4 • Jan 6",
+            title: "v0.4 (Jan 6) — Low-Level Push Triggers (Hard Stop)",
+            notes: "Switched from high-level drag gestures to raw pointer event loops. Widened push travel (60px to 80px) and strictly terminates the touch session after firing 1 character (must lift finger).",
+            engine: "push_v4_lowlevel",
+            innerR: 60
+        },
+        {
+            id: "v0.3",
+            label: "v0.3 • Dec 26",
+            title: "v0.3 (Dec 26) — Push Triggers (Bars & Dots)",
+            notes: "Alternating Bars (E/S/W/N) and Dots (diagonals) sit at 70px inside the 80px wall. Push a trigger outward to the wall to pop open 4 rotated local letters (Out, CW, In, CCW).",
+            engine: "push_v3",
+            innerR: 70
+        },
+        {
+            id: "v0.2",
+            label: "v0.2 • Dec 25",
+            title: "v0.2 (Dec 25) — Circle + 8 Perimeter Dots",
+            notes: "Enter the center circle to turn it Blue (Ready). Drag onto any of the 8 perimeter dots to open a 4-key directional cross (Up, Right, Down, Left), then drag past threshold to type.",
+            engine: "dots_v2"
+        },
+        {
+            id: "v0.1",
+            label: "v0.1 • Dec 24",
+            title: "v0.1 (Dec 24) — 3×3 Nested Square Grid",
+            notes: "Start drag inside the center square ('Home Base'). Drag into any of the 8 surrounding squares to spawn 8 orange sub-squares around it. Enter a sub-square to fire!",
+            engine: "grid_v1"
         }
     ];
 
@@ -260,31 +327,46 @@
 
     const CHARS_AH = ["A", "B", "C", "D", "E", "F", "G", "H"];
 
+    const MARKING_MENU_V16 = [
+        ["e", "i", "a", "u"], // 0 = N
+        ["m", "n", "t", "r"], // 1 = NE
+        ["c", "x", "z", "v"], // 2 = E
+        ["?", "!", ",", "."], // 3 = SE
+        ["␣", "⌫", "⏎", "⇧"], // 4 = S
+        ["1", "2", "3", "4"], // 5 = SW
+        ["f", "g", "j", "y"], // 6 = W
+        ["b", "d", "h", "k"]  // 7 = NW
+    ];
+
     // 🌟 STATE
     let currentVersion = VERSIONS[0];
     let textValue = "";
     let kbdCenter = { x: 0, y: 0 };
 
-    // v0.1 state
     let v1_isSessionAlive = false, v1_activeZone = null, v1_dragPos = null;
-    // v0.2 state
     let v2_isReady = false, v2_activeDot = null, v2_activeKey = null, v2_dragPos = null;
-    // v0.3 & v0.4 state
     let v3_activeSector = null, v3_pushProgress = 0, v3_isMenuOpen = false, v3_isValidSession = false;
-    // v0.5 & v0.6/v0.7 state
     let simple_isAlive = false, simple_activeZone = null, simple_dragPos = null;
-    // v0.8 & v0.9 state
     let v8_isArmed = false, v8_dragPos = null, v8_sparkIndex = null, v8_sparkUntil = 0;
-    // v0.10 state
     let v10_swipeState = 0, v10_dragPos = null, v10_activeArc = null, v10_contactPt = null, v10_pullProgress = 0;
-    // v0.11 & v0.12 state (Jelly & Bezier Spring)
     let v11_swipeState = 0, v11_pushDepth = 0, v11_pushVel = 0, v11_springActive = false;
     let v11_pushAngle = 0, v11_activeArc = null, v11_sparkIndex = null, v11_sparkUntil = 0;
-    // v0.13 & v0.14 state (Ring Trigger v.02 & v.03)
-    let v13_activeCharIndex = null, v13_dotProgress = 0, v13_sparkIndex = null, v13_sparkUntil = 0;
-    let v13_ghosts = [];
+    let v13_activeCharIndex = null, v13_dotProgress = 0, v13_sparkIndex = null, v13_sparkUntil = 0, v13_ghosts = [];
+    let v15_firstFiredZone = null, v15_activeCharIndex = null, v15_ghosts = [];
+    let v16_activePrimaryZone = null, v16_fingerPos = null, v16_ghosts = [];
 
-    // Latest chorded state
+    const comboMap8 = new Map();
+    (() => {
+        let code = 97;
+        for (let i = 1; i <= 7; i++) {
+            for (let j = 1; j <= 7; j++) {
+                if (i !== j && code <= 122) {
+                    comboMap8.set(`${i}-${j}`, String.fromCharCode(code++));
+                }
+            }
+        }
+    })();
+
     let activeTouchId = null, firstFiredZone = null, activeCharIndex = null, fingerPos = null;
     let ghosts = [], cursorSparks = [];
     const comboMap6 = new Map();
@@ -301,6 +383,7 @@
 
     const canvas = document.getElementById('kbCanvas');
     const ctx = canvas.getContext('2d');
+    const editor = document.getElementById('editor');
     const textContent = document.getElementById('textContent');
     const caret = document.getElementById('caret');
     const btnSpace = document.getElementById('btnSpace');
@@ -319,11 +402,16 @@
         v11_swipeState = 0; v11_pushDepth = 0; v11_pushVel = 0; v11_springActive = false;
         v11_pushAngle = 0; v11_activeArc = null; v11_sparkIndex = null; v11_sparkUntil = 0;
         v13_activeCharIndex = null; v13_dotProgress = 0; v13_sparkIndex = null; v13_sparkUntil = 0; v13_ghosts = [];
+        v15_firstFiredZone = null; v15_activeCharIndex = null; v15_ghosts = [];
+        v16_activePrimaryZone = null; v16_fingerPos = null; v16_ghosts = [];
         activeTouchId = null; firstFiredZone = null; activeCharIndex = null; fingerPos = null;
     }
 
+    // 📍 CENTER KEYBOARD IN RIGHT EDITOR PANE
     function updateKeyboardCenter() {
         const isFloating = (currentVersion.engine === "chord6_latest");
+        const edRect = editor.getBoundingClientRect();
+
         if (isFloating) {
             const rect = caret.getBoundingClientRect();
             kbdCenter = { x: rect.left, y: rect.top + (rect.height / 2) };
@@ -332,11 +420,14 @@
             btnBackspace.style.left = (kbdCenter.x + 76) + 'px';
             btnBackspace.style.top = (kbdCenter.y - 124) + 'px';
         } else {
-            kbdCenter = { x: window.innerWidth / 2, y: window.innerHeight * 0.62 };
-            btnSpace.style.left = '28px';
-            btnSpace.style.top = (window.innerHeight - 70) + 'px';
-            btnBackspace.style.left = (window.innerWidth - 76) + 'px';
-            btnBackspace.style.top = (window.innerHeight - 70) + 'px';
+            kbdCenter = {
+                x: edRect.left + edRect.width / 2,
+                y: edRect.top + edRect.height * 0.62
+            };
+            btnSpace.style.left = (edRect.left + 18) + 'px';
+            btnSpace.style.top = (edRect.bottom - 66) + 'px';
+            btnBackspace.style.left = (edRect.right - 66) + 'px';
+            btnBackspace.style.top = (edRect.bottom - 66) + 'px';
         }
     }
 
@@ -967,7 +1058,6 @@
         ctx.stroke();
     }
 
-    // v0.12 (June) — 4-Anchor Cubic Bezier Jelly Circle
     function drawV12Bezier() {
         stepSpringV11();
         const mainRadius = 100;
@@ -1086,7 +1176,6 @@
         const dotStartRadius = V13_MAIN + (currentVersion.dotStartOffset || 20);
         const dotEndRadius = V13_MAIN + (currentVersion.dotEndOffset || 0);
 
-        // Debug green grab circles
         for (let i = 0; i < 8; i++) {
             const rad = (i * 45) * Math.PI / 180;
             ctx.beginPath();
@@ -1098,12 +1187,10 @@
         const isSparking = (v13_sparkIndex !== null && now < v13_sparkUntil);
         if (!isSparking) v13_sparkIndex = null;
 
-        // Outer Ring
         ctx.beginPath(); ctx.arc(c.x, c.y, V13_MAIN, 0, Math.PI * 2);
         ctx.strokeStyle = isSparking ? '#4CAF50' : '#2196F3';
         ctx.lineWidth = 6; ctx.stroke();
 
-        // Inner Ring
         ctx.beginPath(); ctx.arc(c.x, c.y, V13_INNER, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
         ctx.lineWidth = 3; ctx.stroke();
@@ -1111,7 +1198,6 @@
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.font = 'bold 42px sans-serif';
 
-        // 1. Active Aiming
         if (v13_activeCharIndex !== null) {
             const idx = v13_activeCharIndex;
             const lockedRad = (idx * 45) * Math.PI / 180;
@@ -1124,7 +1210,6 @@
             ctx.fill();
         }
 
-        // 2. Fired Ghosts (300ms fade)
         v13_ghosts = v13_ghosts.filter(g => {
             const age = now - g.startTime;
             if (age > 300) return false;
@@ -1140,7 +1225,304 @@
     }
 
     // =========================================================================
-    // 🕹️ ENGINE 15: Latest 6-Zone Floating Chorded Keyboard
+    // 🕹️ ENGINE 15: v0.15 (Jul 10) — 8-Zone Inflating Bulge Chords
+    // =========================================================================
+    const V15_INNER = 70, V15_MAIN = 80, V15_OUTER = 120, V15_BULGE = 20;
+    function getV15ZoneForIndex(index) {
+        const map = [4, 5, 6, 7, 8, 1, 2, 3];
+        return map[index] || 0;
+    }
+
+    function handleTouchV15(type, pt) {
+        if (type === 'end') {
+            v15_activeCharIndex = null;
+            return;
+        }
+        const c = kbdCenter;
+        const dx = pt.x - c.x, dy = pt.y - c.y;
+        const distToCenter = Math.hypot(dx, dy);
+
+        let angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+        if (angleDeg < 0) angleDeg += 360;
+
+        let shiftedAngle = (angleDeg + 90) % 360;
+        const currentAngleIndex = Math.floor((shiftedAngle + 22.5) / 45) % 8;
+
+        const hoveredZone = getV15ZoneForIndex(currentAngleIndex);
+        const currentOuterLimit = (v15_firstFiredZone !== null && hoveredZone === v15_firstFiredZone)
+            ? V15_OUTER + V15_BULGE
+            : V15_OUTER;
+
+        if (distToCenter > currentOuterLimit) {
+            v15_activeCharIndex = null;
+        } else if (distToCenter > V15_INNER) {
+            if (distToCenter >= V15_MAIN) {
+                v15_activeCharIndex = currentAngleIndex;
+            }
+        } else {
+            if (v15_activeCharIndex !== null) {
+                const firedZone = getV15ZoneForIndex(v15_activeCharIndex);
+                const isCancelBtn = (v15_firstFiredZone !== null && firedZone === v15_firstFiredZone);
+                const mappedChar = (v15_firstFiredZone !== null && firedZone !== 8 && !isCancelBtn)
+                    ? comboMap8.get(`${v15_firstFiredZone}-${firedZone}`)
+                    : null;
+
+                const isValidAction = isCancelBtn || v15_firstFiredZone === null || firedZone === 8 || mappedChar;
+
+                if (isValidAction) {
+                    const ghostText = isCancelBtn ? "🔙" : (firedZone === 8 ? "␣" : firedZone.toString());
+                    const currentOuter = isCancelBtn ? V15_OUTER + V15_BULGE : V15_OUTER;
+                    const ghostRadius = V15_MAIN + (currentOuter - V15_MAIN) / 2;
+                    const angleRad = ((v15_activeCharIndex * 45) - 90) * Math.PI / 180;
+
+                    v15_ghosts.push({
+                        text: ghostText,
+                        angleRad: angleRad,
+                        radius: ghostRadius,
+                        isCancelBtn: isCancelBtn,
+                        startTime: Date.now()
+                    });
+
+                    if (v15_firstFiredZone === null) {
+                        if (firedZone === 8) commitText(" ");
+                        else v15_firstFiredZone = firedZone;
+                    } else {
+                        if (isCancelBtn) {
+                            v15_firstFiredZone = null;
+                        } else if (firedZone === 8) {
+                            commitText(" ");
+                            v15_firstFiredZone = null;
+                        } else {
+                            commitText(mappedChar);
+                            v15_firstFiredZone = null;
+                        }
+                    }
+                }
+                v15_activeCharIndex = null;
+            }
+        }
+    }
+
+    function drawV15() {
+        const c = kbdCenter;
+        const now = Date.now();
+        const numItems = 8, angleStep = 45;
+
+        for (let i = 0; i < numItems; i++) {
+            const zone = getV15ZoneForIndex(i);
+            const isAnchor = (zone === v15_firstFiredZone);
+            const isActive = (i === v15_activeCharIndex);
+
+            if (isAnchor || isActive) {
+                const currentOuter = isAnchor ? V15_OUTER + V15_BULGE : V15_OUTER;
+                const startRad = ((i * angleStep) - 90 - 22.5) * Math.PI / 180;
+                const endRad = startRad + (angleStep * Math.PI / 180);
+
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, currentOuter, startRad, endRad, false);
+                ctx.arc(c.x, c.y, V15_MAIN, endRad, startRad, true);
+                ctx.closePath();
+
+                if (isAnchor && isActive) ctx.fillStyle = '#FF9800';
+                else if (isAnchor) ctx.fillStyle = '#4CAF50';
+                else ctx.fillStyle = '#2196F3';
+                ctx.fill();
+            }
+        }
+
+        ctx.beginPath(); ctx.arc(c.x, c.y, V15_MAIN, 0, Math.PI * 2);
+        ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 4; ctx.stroke();
+
+        ctx.beginPath(); ctx.arc(c.x, c.y, V15_INNER, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)'; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.save();
+        ctx.setLineDash([15, 15]);
+        ctx.strokeStyle = 'rgba(0, 200, 83, 0.35)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < numItems; i++) {
+            const zone = getV15ZoneForIndex(i);
+            const isAnchor = (zone === v15_firstFiredZone);
+            const currentOuter = isAnchor ? V15_OUTER + V15_BULGE : V15_OUTER;
+            const startRad = ((i * angleStep) - 90 - 22.5) * Math.PI / 180;
+            const endRad = startRad + (angleStep * Math.PI / 180);
+
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, currentOuter, startRad, endRad);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        for (let i = 0; i < numItems; i++) {
+            const startRad = ((i * angleStep) - 90 - 22.5) * Math.PI / 180;
+            const zone1 = getV15ZoneForIndex(i === 0 ? 7 : i - 1);
+            const zone2 = getV15ZoneForIndex(i);
+            const lineOuter = (zone1 === v15_firstFiredZone || zone2 === v15_firstFiredZone)
+                ? V15_OUTER + V15_BULGE
+                : V15_OUTER;
+
+            ctx.beginPath();
+            ctx.moveTo(c.x + Math.cos(startRad) * V15_MAIN, c.y + Math.sin(startRad) * V15_MAIN);
+            ctx.lineTo(c.x + Math.cos(startRad) * lineOuter, c.y + Math.sin(startRad) * lineOuter);
+            ctx.strokeStyle = 'rgba(0, 200, 83, 0.35)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 32px sans-serif';
+        for (let i = 0; i < numItems; i++) {
+            const zone = getV15ZoneForIndex(i);
+            const label = (zone === 8) ? "␣" : zone.toString();
+            const angleRad = ((i * angleStep) - 90) * Math.PI / 180;
+            const isAnchor = (zone === v15_firstFiredZone);
+            const isActive = (i === v15_activeCharIndex);
+
+            const currentOuter = isAnchor ? V15_OUTER + V15_BULGE : V15_OUTER;
+            const currentTextR = V15_MAIN + (currentOuter - V15_MAIN) / 2;
+
+            ctx.fillStyle = (isAnchor || isActive) ? '#FFFFFF' : '#000000';
+            ctx.fillText(label, c.x + Math.cos(angleRad) * currentTextR, c.y + Math.sin(angleRad) * currentTextR);
+        }
+
+        v15_ghosts = v15_ghosts.filter(g => {
+            const age = now - g.startTime;
+            if (age > 300) return false;
+            const alpha = 1 - (age / 300);
+            ctx.fillStyle = g.isCancelBtn ? `rgba(255, 152, 0, ${alpha})` : `rgba(76, 175, 80, ${alpha})`;
+            ctx.fillText(g.text, c.x + Math.cos(g.angleRad) * g.radius, c.y + Math.sin(g.angleRad) * g.radius);
+            return true;
+        });
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 16: v0.16 (Jul 17) — Rhombus 8-Node × 4-Char Sub-Menu
+    // =========================================================================
+    const V16_CARDINAL = 115, V16_DIAGONAL = 78;
+    const V16_HITBOX = 20, V16_FIRE = 35, V16_SUBTEXT = 55, V16_DOT_R = 16;
+
+    function getV16NodeCenter(index, center) {
+        const angleRad = ((index * 45) - 90) * Math.PI / 180;
+        const r = (index % 2 === 0) ? V16_CARDINAL : V16_DIAGONAL;
+        return { x: center.x + Math.cos(angleRad) * r, y: center.y + Math.sin(angleRad) * r };
+    }
+
+    function getV16SubZone(angleDeg) {
+        const targets = [0, 90, 180, 270];
+        for (let i = 0; i < 4; i++) {
+            let diff = Math.abs(angleDeg - targets[i]);
+            if (diff > 180) diff = 360 - diff;
+            if (diff <= 45) return i;
+        }
+        return null;
+    }
+
+    function handleTouchV16(type, pt) {
+        if (type === 'end') {
+            v16_activePrimaryZone = null; v16_fingerPos = null;
+            return;
+        }
+        v16_fingerPos = pt;
+        const c = kbdCenter;
+
+        if (v16_activePrimaryZone === null) {
+            for (let i = 0; i < 8; i++) {
+                const dc = getV16NodeCenter(i, c);
+                if (Math.hypot(pt.x - dc.x, pt.y - dc.y) < V16_HITBOX) {
+                    v16_activePrimaryZone = i;
+                    break;
+                }
+            }
+        } else {
+            const lc = getV16NodeCenter(v16_activePrimaryZone, c);
+            const lDx = pt.x - lc.x, lDy = pt.y - lc.y;
+            const localDist = Math.hypot(lDx, lDy);
+            let localDeg = Math.atan2(lDy, lDx) * 180 / Math.PI;
+            if (localDeg < 0) localDeg += 360;
+
+            const hoveredSub = getV16SubZone(localDeg);
+            if (localDist > V16_FIRE) {
+                if (hoveredSub !== null) {
+                    const charToCommit = MARKING_MENU_V16[v16_activePrimaryZone][hoveredSub];
+                    const ghostRad = (hoveredSub * 90) * Math.PI / 180;
+                    v16_ghosts.push({
+                        text: charToCommit,
+                        x: lc.x + Math.cos(ghostRad) * V16_SUBTEXT,
+                        y: lc.y + Math.sin(ghostRad) * V16_SUBTEXT,
+                        startTime: Date.now()
+                    });
+
+                    if (charToCommit === "⌫") deleteChar();
+                    else if (charToCommit === "␣") commitText(" ");
+                    else if (charToCommit === "⏎") commitText("\n");
+                    else if (charToCommit && charToCommit !== "⇧") commitText(charToCommit);
+                }
+                v16_activePrimaryZone = null;
+            }
+        }
+    }
+
+    function drawV16() {
+        const c = kbdCenter;
+        const now = Date.now();
+
+        for (let i = 0; i < 8; i++) {
+            const dc = getV16NodeCenter(i, c);
+            ctx.beginPath();
+            ctx.arc(dc.x, dc.y, V16_DOT_R, 0, Math.PI * 2);
+            ctx.fillStyle = (i === v16_activePrimaryZone) ? '#2196F3' : 'rgba(68, 68, 68, 0.6)';
+            ctx.fill();
+        }
+
+        if (v16_activePrimaryZone !== null) {
+            const lc = getV16NodeCenter(v16_activePrimaryZone, c);
+            let hoveredSub = null;
+            if (v16_fingerPos) {
+                let localDeg = Math.atan2(v16_fingerPos.y - lc.y, v16_fingerPos.x - lc.x) * 180 / Math.PI;
+                if (localDeg < 0) localDeg += 360;
+                hoveredSub = getV16SubZone(localDeg);
+            }
+
+            for (let i = 0; i < 4; i++) {
+                const startRad = ((i * 90) - 45) * Math.PI / 180;
+                const endRad = startRad + (90 * Math.PI / 180);
+                const isHov = (i === hoveredSub);
+
+                ctx.beginPath();
+                ctx.arc(lc.x, lc.y, V16_FIRE, startRad, endRad);
+                ctx.strokeStyle = isHov ? '#2196F3' : 'rgba(128, 128, 128, 0.5)';
+                ctx.lineWidth = isHov ? 8 : 4;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            }
+
+            const chars = MARKING_MENU_V16[v16_activePrimaryZone];
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.font = 'bold 32px sans-serif';
+
+            for (let i = 0; i < 4; i++) {
+                const subRad = (i * 90) * Math.PI / 180;
+                const tx = lc.x + Math.cos(subRad) * V16_SUBTEXT;
+                const ty = lc.y + Math.sin(subRad) * V16_SUBTEXT;
+                ctx.fillStyle = (i === hoveredSub) ? '#2196F3' : '#000000';
+                ctx.fillText(chars[i], tx, ty);
+            }
+        }
+
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = 'bold 34px sans-serif';
+        v16_ghosts = v16_ghosts.filter(g => {
+            const age = now - g.startTime;
+            if (age > 300) return false;
+            const alpha = 1 - (age / 300);
+            ctx.fillStyle = `rgba(76, 175, 80, ${alpha})`;
+            ctx.fillText(g.text, g.x, g.y);
+            return true;
+        });
+    }
+
+    // =========================================================================
+    // 🕹️ ENGINE 17: Latest 6-Zone Floating Chorded Keyboard
     // =========================================================================
     const L_INNER = 60, L_MAIN = 73, L_TEXT = 86, L_OUTER = 99;
     const L_STEP = 60, L_GAP = 18, L_SWEEP = 42;
@@ -1287,6 +1669,8 @@
             else if (eng === "jelly_spring_v11") handleTouchJelly('end', null, 70, 40);
             else if (eng === "bezier_v12") handleTouchJelly('end', null, 100, 50);
             else if (eng === "ring_trigger_v13_14") handleTouchV13('end', null);
+            else if (eng === "bulge_chord8_v15") handleTouchV15('end', null);
+            else if (eng === "rhombus_marking_v16") handleTouchV16('end', null);
             return;
         }
         const pt = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -1302,6 +1686,8 @@
         else if (eng === "jelly_spring_v11") handleTouchJelly(type, pt, 70, 40);
         else if (eng === "bezier_v12") handleTouchJelly(type, pt, 100, 50);
         else if (eng === "ring_trigger_v13_14") handleTouchV13(type, pt);
+        else if (eng === "bulge_chord8_v15") handleTouchV15(type, pt);
+        else if (eng === "rhombus_marking_v16") handleTouchV16(type, pt);
     }
 
     document.addEventListener('touchstart', e => { if (!isUITouch(e)) { e.preventDefault(); routeTouch('start', e); } }, {passive: false});
@@ -1326,6 +1712,8 @@
         else if (eng === "jelly_spring_v11") drawV11();
         else if (eng === "bezier_v12") drawV12Bezier();
         else if (eng === "ring_trigger_v13_14") drawV13();
+        else if (eng === "bulge_chord8_v15") drawV15();
+        else if (eng === "rhombus_marking_v16") drawV16();
         else if (eng === "chord6_latest") drawLatest();
         requestAnimationFrame(renderLoop);
     }
